@@ -11,13 +11,7 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
-  CalendarCheck,
-  ShieldCheck,
-  Coins,
-  Sparkles,
-  PieChart,
-  CheckCircle2,
-  FolderOpen
+  CalendarCheck
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -175,104 +169,7 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* ============================================================
-            FEATURED DEMO EVENTS SHOWCASE
-            ============================================================ */}
-        <section className="demo-events-section">
-          <div className="demo-events-container">
-            <div className="section-header-split">
-              <div>
-                <span className="section-kicker">Live Demonstration</span>
-                <h2 className="section-heading">Pre-Seeded Academic Events</h2>
-              </div>
-              <Link to="/events" className="btn btn-secondary">
-                <span>View All Events</span>
-                <ArrowRight size={16} />
-              </Link>
-            </div>
 
-            <div className="demo-cards-grid">
-              {/* Event 1 */}
-              <div className="demo-event-card">
-                <div className="demo-event-badge revenue-badge">Net Surplus +4,000 TND</div>
-                <h4 className="demo-event-title">Global Village 2026</h4>
-                <p className="demo-event-loc">Sousse, Tunisia &bull; Cultural Festival</p>
-                <div className="demo-metrics">
-                  <div>
-                    <span className="demo-metric-label">Budget</span>
-                    <strong>5,000 TND</strong>
-                  </div>
-                  <div>
-                    <span className="demo-metric-label">Revenues</span>
-                    <strong className="text-revenue">+6,000 TND</strong>
-                  </div>
-                  <div>
-                    <span className="demo-metric-label">Expenses</span>
-                    <strong className="text-expense">-2,000 TND</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Event 2 */}
-              <div className="demo-event-card">
-                <div className="demo-event-badge revenue-badge">Net Surplus +2,500 TND</div>
-                <h4 className="demo-event-title">Career Fair 2026</h4>
-                <p className="demo-event-loc">Tunis, Tunisia &bull; Corporate Networking</p>
-                <div className="demo-metrics">
-                  <div>
-                    <span className="demo-metric-label">Budget</span>
-                    <strong>4,000 TND</strong>
-                  </div>
-                  <div>
-                    <span className="demo-metric-label">Revenues</span>
-                    <strong className="text-revenue">+6,000 TND</strong>
-                  </div>
-                  <div>
-                    <span className="demo-metric-label">Expenses</span>
-                    <strong className="text-expense">-3,500 TND</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Event 3 */}
-              <div className="demo-event-card">
-                <div className="demo-event-badge deficit-badge">Budget Deficit -500 TND</div>
-                <h4 className="demo-event-title">Leadership Conference 2026</h4>
-                <p className="demo-event-loc">Hammamet, Tunisia &bull; National Summit</p>
-                <div className="demo-metrics">
-                  <div>
-                    <span className="demo-metric-label">Budget</span>
-                    <strong>8,000 TND</strong>
-                  </div>
-                  <div>
-                    <span className="demo-metric-label">Revenues</span>
-                    <strong className="text-revenue">+8,000 TND</strong>
-                  </div>
-                  <div>
-                    <span className="demo-metric-label">Expenses</span>
-                    <strong className="text-expense">-8,500 TND</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Evaluation Callout Box */}
-            <div className="eval-callout-box">
-              <div className="eval-callout-icon">
-                <ShieldCheck size={28} color="var(--brand-primary)" />
-              </div>
-              <div className="eval-callout-content">
-                <h4>Academic Evaluation & Demo Credentials</h4>
-                <p>
-                  You can explore with our preloaded account: <strong>demo@aiesec.net</strong> (password: <strong>password123</strong> or <strong>password12</strong>), or create a fresh account anytime.
-                </p>
-              </div>
-              <Link to="/login" className="btn btn-primary">
-                Quick Sign In
-              </Link>
-            </div>
-          </div>
-        </section>
 
         {/* ============================================================
             BOTTOM CALL TO ACTION

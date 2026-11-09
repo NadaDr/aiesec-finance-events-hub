@@ -271,5 +271,3 @@ During the oral presentation, be ready to explain:
 
 ---
 
-## 📄 License
-Academic Project developed for **Polytechnique Sousse (MERN Stack Module)**.
