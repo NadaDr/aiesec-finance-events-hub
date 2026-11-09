@@ -207,13 +207,13 @@ const Dashboard = () => {
                         <Legend wrapperStyle={{ paddingTop: '10px' }} />
                         <Bar
                           dataKey="Revenue"
-                          fill="#16a879"
+                          fill="#20B486"
                           name="Revenue"
                           radius={[4, 4, 0, 0]}
                         />
                         <Bar
                           dataKey="Expenses"
-                          fill="#e45b65"
+                          fill="#F06475"
                           name="Expenses"
                           radius={[4, 4, 0, 0]}
                         />

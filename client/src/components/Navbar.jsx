@@ -1,11 +1,12 @@
 // client/src/components/Navbar.jsx
-// Main navigation bar for public visitors and authenticated members using Redux
+// Main navigation bar adhering to AIESEC brand identity with official AIESEC logo
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
-import { Search, LogIn, UserPlus, LogOut, Menu, X, Landmark, Calendar } from 'lucide-react';
+import aiesecLogo from '../assets/AIESEClogo.png';
+import { Search, LogIn, UserPlus, LogOut, Menu, X, Calendar } from 'lucide-react';
 
 const Navbar = ({ onSearchChange, searchTerm = '' }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -27,12 +28,18 @@ const Navbar = ({ onSearchChange, searchTerm = '' }) => {
 
   return (
     <header className="navbar">
-      {/* Brand & Logo */}
-      <Link to={isAuthenticated ? "/dashboard" : "/"} className="navbar-brand">
-        <div className="navbar-logo">
-          <Landmark size={20} />
+      {/* Brand Product Lockup: Official AIESEC Logo + Finance Hub */}
+      <Link to={isAuthenticated ? "/dashboard" : "/"} className="brand-lockup">
+        <img
+          src={aiesecLogo}
+          alt="AIESEC"
+          className="brand-logo-img"
+        />
+        <div className="brand-lockup-divider"></div>
+        <div className="brand-product-info">
+          <span className="brand-product-title">Finance Hub</span>
+          <span className="brand-product-subtitle">Event Finances</span>
         </div>
-        <span>AIESEC Finance Hub</span>
       </Link>
 
       {/* Search Input for Events */}

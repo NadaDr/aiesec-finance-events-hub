@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../redux/authSlice';
 import Navbar from '../components/Navbar';
+import aiesecLogo from '../assets/AIESEClogo.png';
 import { UserPlus, User, Lock, Mail, AlertCircle } from 'lucide-react';
 
 const Register = () => {
@@ -65,8 +66,15 @@ const Register = () => {
   return (
     <div className="app-container">
       <Navbar />
-      <div className="auth-container">
+      <div className="auth-container bg-momentum-lines">
         <div className="auth-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', marginBottom: '1.5rem' }}>
+            <img src={aiesecLogo} alt="AIESEC" style={{ height: '24px', width: 'auto' }} />
+            <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border)' }}></div>
+            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', fontWeight: 800, color: 'var(--brand-dark)' }}>
+              Finance Hub
+            </span>
+          </div>
           <h2 className="auth-title">Create Account</h2>
           <p className="auth-subtitle">
             Join AIESEC Finance Hub to manage event budgets

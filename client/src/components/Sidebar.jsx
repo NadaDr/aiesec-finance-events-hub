@@ -1,17 +1,17 @@
 // client/src/components/Sidebar.jsx
-// Navigation sidebar for authenticated pages using Redux
+// Navigation sidebar for authenticated pages using AIESEC brand identity
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
+import aiesecLogo from '../assets/AIESEClogo.png';
 import {
   LayoutDashboard,
   CalendarDays,
   Receipt,
   Tags,
-  LogOut,
-  Landmark
+  LogOut
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -26,17 +26,20 @@ const Sidebar = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <div className="navbar-logo" style={{ width: '32px', height: '32px' }}>
-            <Landmark size={18} />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img
+            src={aiesecLogo}
+            alt="AIESEC"
+            style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
+          />
+          <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border)' }}></div>
           <div>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--dark-blue)', lineHeight: 1.2 }}>
-              AIESEC Hub
-            </h4>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              Finance Portal
-            </span>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 800, color: 'var(--brand-dark)', lineHeight: 1.1 }}>
+              Finance Hub
+            </div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Portal
+            </div>
           </div>
         </div>
       </div>

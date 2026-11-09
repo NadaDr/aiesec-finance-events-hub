@@ -10,9 +10,9 @@ const connectDB = async () => {
     console.log(`[MongoDB] Database name: ${conn.connection.name}`);
   } catch (error) {
     console.error(`[MongoDB] Error connecting to MongoDB: ${error.message}`);
-    process.exit(1); // Exit process with failure
+    console.error('[MongoDB] If you are using your own cluster, please ensure 0.0.0.0/0 is added to Network Access in Atlas.');
+    process.exit(1);
   }
 };
 
 module.exports = connectDB;
-
