@@ -83,4 +83,27 @@ const server = app.listen(PORT, () => {
   console.log(`[Server] AIESEC Finance Hub running on http://localhost:${PORT}`);
 });
 
+// Handle server errors (e.g. port already in use)
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n[Server Error] Port ${PORT} is already in use by another process.`);
+    console.error(`[Server Solution] Stop any other running server instance, or change PORT in server/.env\n`);
+    process.exit(1);
+  } else {
+    console.error('[Server Error]', err);
+  }
+});
+
+// Graceful shutdown
+const gracefulShutdown = () => {
+  console.log('\n[Server] Closing HTTP server cleanly...');
+  server.close(() => {
+    console.log('[Server] HTTP server closed.');
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
 module.exports = { app, server };
