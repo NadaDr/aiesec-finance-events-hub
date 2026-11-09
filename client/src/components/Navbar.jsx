@@ -1,5 +1,5 @@
 // client/src/components/Navbar.jsx
-// Exact navbar matching reference design: official blue AIESEC logo, pill search bar, profile avatar, hamburger menu
+// Exact navbar matching reference design: official blue AIESEC logo, profile avatar, hamburger menu
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,7 +7,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
 import aiesecBlueLogo from '../assets/AIESEClogo-blue.png';
 import {
-  Search,
   User as UserIcon,
   Menu,
   X,
@@ -20,24 +19,16 @@ import {
   UserPlus
 } from 'lucide-react';
 
-const Navbar = ({ onSearchChange, searchTerm: propSearchTerm = '' }) => {
+const Navbar = () => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [localSearch, setLocalSearch] = useState(propSearchTerm);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const profileRef = useRef(null);
   const drawerRef = useRef(null);
-
-  // Sync prop changes
-  useEffect(() => {
-    if (propSearchTerm !== undefined) {
-      setLocalSearch(propSearchTerm);
-    }
-  }, [propSearchTerm]);
 
   // Close menus on click outside
   useEffect(() => {
@@ -65,23 +56,6 @@ const Navbar = ({ onSearchChange, searchTerm: propSearchTerm = '' }) => {
     };
   }, [drawerOpen]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const query = (localSearch || '').trim();
-    if (onSearchChange) {
-      onSearchChange(query);
-    }
-    navigate(`/events?search=${encodeURIComponent(query)}`);
-  };
-
-  const handleSearchInputChange = (e) => {
-    const value = e.target.value;
-    setLocalSearch(value);
-    if (onSearchChange) {
-      onSearchChange(value);
-    }
-  };
-
   const handleLogout = () => {
     dispatch(logout());
     setProfileDropdownOpen(false);
@@ -93,7 +67,7 @@ const Navbar = ({ onSearchChange, searchTerm: propSearchTerm = '' }) => {
     <>
       <header className="ref-navbar">
         <div className="ref-navbar-container">
-          {/* Left: Official Blue AIESEC Logo & Pill Search */}
+          {/* Left: Official Blue AIESEC Logo */}
           <div className="ref-nav-left">
             <Link to="/" className="ref-logo-link" title="AIESEC Finance Hub">
               <img
@@ -102,19 +76,6 @@ const Navbar = ({ onSearchChange, searchTerm: propSearchTerm = '' }) => {
                 className="ref-aiesec-logo"
               />
             </Link>
-
-            {/* Pill Search Bar */}
-            <form onSubmit={handleSearchSubmit} className="ref-search-form">
-              <Search className="ref-search-icon" size={17} />
-              <input
-                type="text"
-                placeholder="Search events..."
-                value={localSearch}
-                onChange={handleSearchInputChange}
-                className="ref-search-input"
-                aria-label="Search events"
-              />
-            </form>
           </div>
 
           {/* Right: User Avatar Circle + Hamburger Button */}
