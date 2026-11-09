@@ -1,18 +1,20 @@
 // client/src/components/Navbar.jsx
-// Main navigation bar for public visitors and authenticated members
+// Main navigation bar for public visitors and authenticated members using Redux
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Search, LogIn, UserPlus, LogOut, Menu, X, Landmark, Calendar, ArrowRight } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../redux/authSlice';
+import { Search, LogIn, UserPlus, LogOut, Menu, X, Landmark, Calendar } from 'lucide-react';
 
 const Navbar = ({ onSearchChange, searchTerm = '' }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    dispatch(logout());
     navigate('/');
   };
 

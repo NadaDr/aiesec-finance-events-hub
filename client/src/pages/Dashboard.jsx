@@ -1,10 +1,10 @@
 // client/src/pages/Dashboard.jsx
-// Main Dashboard displaying dynamic financial KPIs, Recharts comparison, events overview, and recent transactions
+// Main Dashboard displaying dynamic financial KPIs, Recharts comparison, events overview, and recent transactions using Redux
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import FinancialCard from '../components/FinancialCard';
@@ -23,8 +23,6 @@ import {
   Plus,
   Calendar,
   ArrowRight,
-  TrendingUp,
-  TrendingDown,
   BarChart2,
   CalendarDays
 } from 'lucide-react';
@@ -50,7 +48,7 @@ const formatDate = (dateStr) => {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState({
@@ -351,4 +349,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

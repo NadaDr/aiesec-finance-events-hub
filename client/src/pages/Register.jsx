@@ -1,9 +1,10 @@
 // client/src/pages/Register.jsx
-// User registration page with password confirmation and client validation
+// User registration page with Redux Toolkit authentication
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser } from '../redux/authSlice';
 import Navbar from '../components/Navbar';
 import { UserPlus, User, Lock, Mail, AlertCircle } from 'lucide-react';
 
@@ -14,53 +15,52 @@ const Register = () => {
     password: '',
     confirmPassword: ''
   });
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState('');
 
-  const { register } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { loading: isSubmitting, error: reduxError } = useSelector((state) => state.auth);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-    if (error) setError('');
+    if (localError) setLocalError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setLocalError('');
 
     const { name, email, password, confirmPassword } = formData;
 
     if (!name || !email || !password || !confirmPassword) {
-      setError('Please fill in all required fields.');
+      setLocalError('Please fill in all required fields.');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setLocalError('Password must be at least 6 characters long.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match. Please re-enter.');
+      setLocalError('Passwords do not match. Please re-enter.');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      await register(name, email, password);
-      navigate('/dashboard');
+      const resultAction = await dispatch(registerUser({ name, email, password }));
+      if (registerUser.fulfilled.match(resultAction)) {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError(
-        err.response?.data?.message || err.message || 'Registration failed.'
-      );
-    } finally {
-      setIsSubmitting(false);
+      setLocalError('Registration failed. Please try again.');
     }
   };
+
+  const displayError = localError || reduxError;
 
   return (
     <div className="app-container">
@@ -72,10 +72,10 @@ const Register = () => {
             Join AIESEC Finance Hub to manage event budgets
           </p>
 
-          {error && (
+          {displayError && (
             <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <AlertCircle size={16} />
-              <span>{error}</span>
+              <span>{displayError}</span>
             </div>
           )}
 
@@ -228,4 +228,3 @@ const Register = () => {
 };
 
 export default Register;
-

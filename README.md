@@ -60,7 +60,7 @@ Each event generates income (sponsorships, ticket sales, booth fees, delegate re
 | **Backend API** | Express.js / Node.js | RESTful API architecture |
 | **Frontend UI** | React 18 / Vite | Component-based interactive interface |
 | **Navigation** | React Router v6 | Single Page Application (SPA) routing |
-| **State & Auth** | React Context (`AuthContext`) | Global auth state & persistent session |
+| **State & Auth** | Redux Toolkit (`@reduxjs/toolkit`, `react-redux`) | Centralized state management & persistent session |
 | **HTTP Client** | Axios | REST communication with JWT interceptor |
 | **Visualizations** | Recharts | Revenue vs Expenses bar charts |
 | **Icons** | Lucide React | Clean modern SVG icons |
@@ -132,8 +132,9 @@ aiesec-finance-events-hub/
 │   │   │   ├── EventDetails.jsx   # Event summary & Add Revenue/Expense
 │   │   │   ├── Transactions.jsx   # All transactions with filters
 │   │   │   └── Categories.jsx     # Category management
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx    # React authentication context
+│   │   ├── redux/
+│   │   │   ├── authSlice.js       # Redux Toolkit slice with async thunks
+│   │   │   └── store.js           # Centralized Redux store configuration
 │   │   ├── services/
 │   │   │   └── api.js             # Axios instance & JWT interceptor
 │   │   ├── App.jsx                # Router configuration

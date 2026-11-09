@@ -1,9 +1,10 @@
 // client/src/pages/Login.jsx
-// User login page with form validation and JWT authentication
+// User login page with Redux Toolkit authentication
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser } from '../redux/authSlice';
 import Navbar from '../components/Navbar';
 import { LogIn, Lock, Mail, AlertCircle } from 'lucide-react';
 
@@ -12,41 +13,40 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState('');
 
-  const { login } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { loading: isSubmitting, error: reduxError } = useSelector((state) => state.auth);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-    if (error) setError('');
+    if (localError) setLocalError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setLocalError('');
 
     if (!formData.email || !formData.password) {
-      setError('Please provide both email and password.');
+      setLocalError('Please provide both email and password.');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      await login(formData.email, formData.password);
-      navigate('/dashboard');
+      const resultAction = await dispatch(loginUser(formData));
+      if (loginUser.fulfilled.match(resultAction)) {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError(
-        err.response?.data?.message || err.message || 'Invalid email or password.'
-      );
-    } finally {
-      setIsSubmitting(false);
+      setLocalError('Invalid email or password.');
     }
   };
+
+  const displayError = localError || reduxError;
 
   return (
     <div className="app-container">
@@ -58,10 +58,10 @@ const Login = () => {
             Sign in to manage your AIESEC event finances
           </p>
 
-          {error && (
+          {displayError && (
             <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <AlertCircle size={16} />
-              <span>{error}</span>
+              <span>{displayError}</span>
             </div>
           )}
 
@@ -160,4 +160,3 @@ const Login = () => {
 };
 
 export default Login;
-

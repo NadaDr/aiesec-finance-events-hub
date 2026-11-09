@@ -1,9 +1,10 @@
 // client/src/components/Sidebar.jsx
-// Navigation sidebar for authenticated pages
+// Navigation sidebar for authenticated pages using Redux
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useDispatch } from 'react-redux';
+import { logout } from '../redux/authSlice';
 import {
   LayoutDashboard,
   CalendarDays,
@@ -14,11 +15,11 @@ import {
 } from 'lucide-react';
 
 const Sidebar = () => {
-  const { logout, user } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    dispatch(logout());
     navigate('/login');
   };
 
@@ -93,4 +94,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-

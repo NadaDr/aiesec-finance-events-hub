@@ -1,10 +1,10 @@
 // client/src/pages/LandingPage.jsx
-// Modern and spacious landing page inspired by AIESEC's visual identity
+// Modern and spacious landing page inspired by AIESEC's visual identity using Redux
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import Navbar from '../components/Navbar';
-import { useAuth } from '../context/AuthContext';
 import {
   ArrowRight,
   TrendingUp,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 const LandingPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   return (
     <div className="app-container">
@@ -187,4 +187,3 @@ const LandingPage = () => {
 };
 
 export default LandingPage;
-

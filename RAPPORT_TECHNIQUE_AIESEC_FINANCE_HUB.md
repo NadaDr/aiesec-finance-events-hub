@@ -26,6 +26,7 @@ Le projet respecte scrupuleusement l'architecture MERN standard en JavaScript pu
                   +-----------------------------------+
                   |         Client React 18           |
                   |  Vite, React Router v6, Recharts  |
+                  |     Redux Toolkit & React-Redux   |
                   +-----------------+-----------------+
                                     |
                          Axios + JWT Bearer Token
@@ -48,7 +49,7 @@ Le projet respecte scrupuleusement l'architecture MERN standard en JavaScript pu
 ### Pourquoi ces technologies ?
 1. **Node.js & Express.js :** Moteur d'exécution asynchrone non-bloquant et framework REST minimaliste et performant pour distribuer des API JSON.
 2. **MongoDB Atlas & Mongoose :** Base de données orientée documents NoSQL hébergée sur le cloud. Mongoose apporte la validation stricte des schémas, les hooks pré-enregistrement (`pre('save')`) et les relations de population (`.populate()`).
-3. **React 18 & Vite :** Vite offre un rechargement à chaud ultra-rapide et un bundling optimisé. React permet une gestion déclarative de l'interface via des composants réutilisables et des hooks (`useState`, `useEffect`, `useContext`).
+3. **React 18, Vite & Redux Toolkit :** Vite offre un rechargement à chaud ultra-rapide et un bundling optimisé. **Redux Toolkit (`@reduxjs/toolkit` et `react-redux`)** fournit un store global prédictif et immuable avec `createSlice` et des thunks asynchrones (`loginUser`, `registerUser`, `checkAuth`), éliminant les problèmes de re-rendus superflus de `useContext`.
 4. **JWT & bcryptjs :** Hachage unidirectionnel des mots de passe (10 tours de salage) et jetons d'accès signés avec expiration pour une authentification stateless sans sessions serveur lourdes.
 5. **Recharts :** Bibliothèque déclarative basée sur SVG et React pour générer le graphique de comparaison Revenus vs Dépenses par événement.
 
@@ -161,3 +162,4 @@ Deux autres événements (`Career Fair 2026` avec solde de +2 500 TND et `Leader
 1. **Base de données :** MongoDB Atlas Cluster M0 (Cloud AWS, connexion chiffrée SSL).
 2. **Backend API :** Déployable sur Render via le fichier `render.yaml` inclus.
 3. **Frontend Client :** Déployable sur Vercel avec le fichier `client/vercel.json` gérant la réécriture SPA.
+

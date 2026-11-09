@@ -1,12 +1,12 @@
 // client/src/components/ProtectedRoute.jsx
-// Protects routes that require authentication
+// Protects routes that require authentication using Redux Toolkit state
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useSelector } from 'react-redux';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useSelector((state) => state.auth);
   const location = useLocation();
 
   if (loading) {
@@ -26,4 +26,3 @@ const ProtectedRoute = ({ children }) => {
 };
 
 export default ProtectedRoute;
-
