@@ -2,22 +2,71 @@
 node_modules/
 server/node_modules/
 client/node_modules/
+.pnp
+.pnp.js
 
-# Environment Variables
+# Environment Variables & Secrets (NEVER COMMIT REAL SECRETS)
 .env
+.env.*
+!.env.example
+*.env
+*.env.*
+!*.env.example
 server/.env
+server/.env.*
+!server/.env.example
 client/.env
+client/.env.*
+!client/.env.example
 *.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
 
-# Production Builds & Temp
+# Private Keys & Certificates
+*.pem
+*.key
+*.cert
+*.crt
+
+# Production Builds & Temporary Files
 dist/
 client/dist/
 build/
 client/tmp/
+tmp/
+.temp/
+.cache/
 
-# Logs & System
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Logs & System Traces
 *.log
+logs/
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE & Editor Configurations
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS Generated Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
