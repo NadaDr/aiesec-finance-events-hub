@@ -32,7 +32,14 @@ export const registerUser = createAsyncThunk(
       }
       return rejectWithValue(response.data.message || 'Registration failed');
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Registration error';
+      let msg = err.response?.data?.message;
+      if (!msg) {
+        if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+          msg = 'Server connection error: Cannot reach the backend API at http://localhost:5000. Please ensure the backend server is running.';
+        } else {
+          msg = err.message || 'Registration error';
+        }
+      }
       return rejectWithValue(msg);
     }
   }
@@ -52,7 +59,14 @@ export const loginUser = createAsyncThunk(
       }
       return rejectWithValue(response.data.message || 'Login failed');
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Invalid email or password';
+      let msg = err.response?.data?.message;
+      if (!msg) {
+        if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+          msg = 'Server connection error: Cannot reach the backend API at http://localhost:5000. Please ensure the backend server is running.';
+        } else {
+          msg = err.message || 'Invalid email or password';
+        }
+      }
       return rejectWithValue(msg);
     }
   }
