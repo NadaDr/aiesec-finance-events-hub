@@ -1,0 +1,18 @@
+// server/routes/transactionRoutes.js
+// Routes for financial transactions
+
+const express = require('express');
+const router = express.Router();
+const {
+  getTransactions,
+  createTransaction,
+  deleteTransaction
+} = require('../controllers/transactionController');
+const { protect } = require('../middleware/authMiddleware');
+
+router.get('/', protect, getTransactions);
+router.post('/', protect, createTransaction);
+router.delete('/:id', protect, deleteTransaction);
+
+module.exports = router;
+
