@@ -5,7 +5,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
-import aiesecLogo from '../assets/AIESEClogo.png';
+
 import {
   LayoutDashboard,
   CalendarDays,
@@ -26,22 +26,11 @@ const Sidebar = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <img
-            src={aiesecLogo}
-            alt="AIESEC"
-            style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
-          />
-          <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border)' }}></div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 800, color: 'var(--brand-dark)', lineHeight: 1.1 }}>
-              Finance Hub
-            </div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Portal
-            </div>
-          </div>
-        </div>
+        <NavLink to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', fontWeight: 800, color: 'var(--brand-dark)', letterSpacing: '-0.02em' }}>
+            Finance <span style={{ color: 'var(--brand-primary)' }}>Hub</span>
+          </span>
+        </NavLink>
       </div>
 
       <nav className="sidebar-menu">
