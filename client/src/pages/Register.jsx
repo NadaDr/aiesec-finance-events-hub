@@ -1,5 +1,13 @@
 // client/src/pages/Register.jsx
-// User registration page with Redux Toolkit authentication and reusable form components
+// ======================================================================================
+// 📌 REGISTER PAGE (Belfala9i Tounsi)
+// ======================================================================================
+// Hathi el-Page mte3 el-Inscription (Creation de compte) fel Finance Hub:
+// 1) useState (formData): yched l-ism (name), l'email, el password, w confirmation de mot de passe.
+// 2) useDispatch: naba3thou l-action `registerUser(userData)` lel authSlice fel Redux.
+// 3) useSelector: njibou loading w les erreurs de validation (par exemple email déjà utilisé).
+// 4) navigate('/dashboard'): wa9t l'inscription tenja7, nhezzou l-user directement lel Dashboard.
+// ======================================================================================
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,16 +19,19 @@ import aiesecLogo from '../assets/AIESEClogo.png';
 import { UserPlus, User, Lock, Mail } from 'lucide-react';
 
 const Register = () => {
+  // useState 1: formData -> champs mte3 l'inscription
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
+  // useState 2: localError -> validation mte3 les champs w confirmation mot de passe
   const [localError, setLocalError] = useState('');
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  // useSelector: njibou loading w error mel authSlice
   const { loading: isSubmitting, error: reduxError } = useSelector((state) => state.auth);
 
   const handleChange = (e) => {

@@ -12,25 +12,44 @@ import { Button, Input, Textarea, Modal, Alert, Spinner } from '../components/co
 import { Plus, Search, CalendarPlus, MapPin, DollarSign, Calendar, FileText } from 'lucide-react';
 
 const Events = () => {
+  // 1. REDUX HOOKS :
+  // dispatch : bech neb3thou biha les actions lel Redux store (ex: fetchEvents, createEvent, deleteEvent)
   const dispatch = useDispatch();
+
+  // useSelector : njibou les données li 7achtna behom mel eventsSlice :
+  // - events: liste des événements li jéyetna mel MongoDB
+  // - loading: true wa9telli 9a3ed ytelechargi
+  // - isSubmitting: true wa9telli tenzel "Create Event" (spinner 3al bouton)
+  // - reduxError: ken famma ghalta jéyetna mel serveur
   const { events, loading, isSubmitting, error: reduxError } = useSelector((state) => state.events);
 
+  // 2. LOCAL REACT USESTATE :
+  // - searchTerm: yched el texte li ktbtou fel barre de recherche (ex: "Sousse", "Global")
   const [searchTerm, setSearchTerm] = useState('');
+
+  // - showAddModal: booléen (true / false) ykhalas el modal mta3 "+ Add Event" ya yodhher ya yetkhaffa
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // - formError: yched les erreurs mta3 el formulaire fi wost el modal (ex: "Veuillez renseigner les dates")
   const [formError, setFormError] = useState('');
 
+  // - searchParams: yekhou les paramètres mel URL (ken el user 7all ?search=Global)
   const [searchParams] = useSearchParams();
 
-  // New Event Form State
+  // - formData: yched el valeurs li ktbhom el user fel inputs mta3 el modal
   const [formData, setFormData] = useState({
-    name: '',
-    location: '',
-    budget: '',
-    startDate: '',
-    endDate: '',
-    description: ''
+    name: '',        // Nom de l'événement (ex: "Global Village 2026")
+    location: '',    // Emplacement (ex: "Sousse, Tunisia")
+    budget: '',      // Budget alloué en TND (ex: 5000)
+    startDate: '',   // Date de début
+    endDate: '',     // Date de fin
+    description: ''  // Description facultative
   });
 
+  // 3. USEEFFECT HOOK :
+  // Khedmetou: yekhdem AUTOMATIQUEMENT wa9telli l-page tchargi awwel mara (Mount)
+  // 1. Yba3eth dispatch(fetchEvents()) lel Redux bech yjib les événements mel MongoDB
+  // 2. Ythabet ken famma mot de recherche fel URL (?search=...) w y7ottou fel searchTerm
   useEffect(() => {
     dispatch(fetchEvents());
     const querySearch = searchParams.get('search');
@@ -39,6 +58,8 @@ const Events = () => {
     }
   }, [dispatch, searchParams]);
 
+  // 4. HANDLERS (Fonctions mta3 l-evenements) :
+  // handleInputChange: kol ma el user yekteb 7arf fel input, nbadlou el formData
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -47,18 +68,22 @@ const Events = () => {
     if (formError) setFormError('');
   };
 
+  // handleAddEvent: wa9telli el user yenzal "Create Event" fel modal
+  // 1. Nthabtou fel les champs obligatoires wel dates (startDate < endDate)
+  // 2. Nbathou dispatch(createEvent(...)) lel Redux
+  // 3. Ken t3adda b-naje7, nsakkrou el modal w nfarghou el formData
   const handleAddEvent = async (e) => {
     e.preventDefault();
     setFormError('');
 
     const { name, location, startDate, endDate, budget } = formData;
     if (!name || !location || !startDate || !endDate) {
-      setFormError('Please provide event name, location, and valid dates.');
+      setFormError('Renseigner el nom, l-emplacement wel les dates s il vous plaît.');
       return;
     }
 
     if (new Date(startDate) > new Date(endDate)) {
-      setFormError('Event start date cannot be after the end date.');
+      setFormError('La date de début ma tnajamch tkoun ba3d la date de fin.');
       return;
     }
 
@@ -71,8 +96,8 @@ const Events = () => {
       );
 
       if (createEvent.fulfilled.match(resultAction)) {
-        setShowAddModal(false);
-        setFormData({
+        setShowAddModal(false); // Nsakrou el modal
+        setFormData({           // Nfarghou el formulaire
           name: '',
           location: '',
           budget: '',
@@ -81,16 +106,18 @@ const Events = () => {
           description: ''
         });
       } else {
-        setFormError(resultAction.payload || 'Failed to create event.');
+        setFormError(resultAction.payload || 'Échec de création d événement.');
       }
     } catch (err) {
-      setFormError('Failed to create event.');
+      setFormError('Ghalta fi création d événement.');
     }
   };
 
+  // handleDeleteEvent: wa9telli tenzel 3la botona "Delete" fi carte événement
+  // Yab3ath dispatch(deleteEvent(id)) li yfasa5 l'événement m3a ses transactions (Cascade Delete)
   const handleDeleteEvent = async (eventId, eventName) => {
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete "${eventName}"? All associated revenue and expense transactions will also be permanently deleted.`
+      `Met'akked t7eb tfasa5 "${eventName}" ? Kol les transactions mte3ou bech yetfas5ou m3ah.`
     );
     if (!confirmDelete) return;
 

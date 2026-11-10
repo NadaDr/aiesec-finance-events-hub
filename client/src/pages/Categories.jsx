@@ -1,5 +1,14 @@
 // client/src/pages/Categories.jsx
-// Management page for Revenue and Expense Categories using Redux Toolkit and reusable form components
+// ======================================================================================
+// 📌 CATEGORIES MANAGEMENT PAGE (Belfala9i Tounsi)
+// ======================================================================================
+// Hathi el-Page mte3 gestion des catégories financières (Revenue w Expense):
+// 1) useSelector: njibou el liste mte3 les catégories mel categoriesSlice fel Redux.
+// 2) useEffect: n3aytou l-`fetchCategories()` wa9t el page tet7al bech njibouhom mel MongoDB.
+// 3) useState (formData): yched les inputs mte3 formulaire l-idhafa (esm el catégorie w naw3ha: revenue walla expense).
+// 4) handleAddCategory: yab3eth `createCategory()` lel API backend `/api/categories`.
+// 5) handleDeleteCategory: yfasakh catégorie b-`deleteCategory(catId)`.
+// ======================================================================================
 
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,22 +24,28 @@ import { Button, Input, Select, Alert, Spinner, Badge } from '../components/comm
 import { Plus, Trash2, TrendingUp, TrendingDown, Tags } from 'lucide-react';
 
 const Categories = () => {
+  // dispatch: bch naba3thou les actions lel Redux store
   const dispatch = useDispatch();
+
+  // useSelector: njibou les catégories, loading, w les messages d'erreur/succès
   const { categories, loading, isSubmitting, error, success } = useSelector(
     (state) => state.categories
   );
 
-  // New Category Form State
+  // useState 1: formData -> yched el esm (name) w naw3 (type: revenue walla expense)
   const [formData, setFormData] = useState({
     name: '',
     type: 'revenue'
   });
+  // useState 2: localError -> yched erreur ken l'utilisateur nsé ma ktebch esm
   const [localError, setLocalError] = useState('');
 
+  // useEffect: yet7all awwel ma todkhol lel page -> yjib el liste des catégories mel serveur
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
+  // Fonction tcapturi el kteba fel formulaire
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -40,6 +55,7 @@ const Categories = () => {
     if (error || success) dispatch(clearCategoryMessages());
   };
 
+  // Fonction tzid catégorie jdida lel backend
   const handleAddCategory = async (e) => {
     e.preventDefault();
     setLocalError('');
@@ -61,6 +77,7 @@ const Categories = () => {
     }
   };
 
+  // Fonction tfasakh catégorie ba3d ma yet3ada l-confirm popup
   const handleDeleteCategory = async (catId, catName) => {
     dispatch(clearCategoryMessages());
 

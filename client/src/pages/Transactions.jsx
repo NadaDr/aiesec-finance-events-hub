@@ -23,39 +23,59 @@ const formatTND = (amount) => {
 };
 
 const Transactions = () => {
+  // 1. REDUX HOOKS :
   const dispatch = useDispatch();
 
+  // useSelector : Njibou les données mel 3 tranches (Slices) de Redux :
+  // - state.transactions : Les transactions mte3na wel état de chargement/erreur
   const { transactions, loading, isSubmitting, error: txError } = useSelector(
     (state) => state.transactions
   );
+  // - state.events : Les événements li bech na3mlou bihom filtre w n3abiw behom el dropdown
   const { events } = useSelector((state) => state.events);
+  // - state.categories : Les catégories (Sponsoring, Salle, etc.) bech n3abiw el select
   const { categories } = useSelector((state) => state.categories);
 
-  // Filters State
+  // 2. LOCAL REACT USESTATE :
+  // - selectedEvent : yched l-événement el mfaulter tawwa ("all" wala l'ID mta3 event mo3ayyan)
   const [selectedEvent, setSelectedEvent] = useState('all');
+
+  // - selectedType : yched el type ("all", "revenue", wala "expense")
   const [selectedType, setSelectedType] = useState('all');
 
-  // Modal State
+  // - showModal : booléen yched ken el modal mta3 "Record Transaction" ma7loul wala msakker
   const [showModal, setShowModal] = useState(false);
+
+  // - formError : message d'erreur mta3 el formulaire fi wost el modal
   const [formError, setFormError] = useState('');
+
+  // - txForm : yched les données mta3 el transaction jdida li 9a3ed yekteb faha el user
   const [txForm, setTxForm] = useState({
-    event: '',
-    category: '',
-    type: 'revenue',
-    description: '',
-    amount: '',
-    date: new Date().toISOString().split('T')[0]
+    event: '',       // ID mta3 l-événement
+    category: '',    // ID mta3 la catégorie
+    type: 'revenue', // 'revenue' wala 'expense'
+    description: '', // Description (ex: "Sponsoring Ooredoo")
+    amount: '',      // Montant en TND
+    date: new Date().toISOString().split('T')[0] // Date lyawm par défaut
   });
 
+  // 3. USEEFFECT 1 (Mount) :
+  // Yekhdem awwel ma t7ell l-page :
+  // Yjib les événements w les catégories bech ykounou 7adhren fel filtres wel dropdowns
   useEffect(() => {
     dispatch(fetchEvents());
     dispatch(fetchCategories());
   }, [dispatch]);
 
+  // 4. USEEFFECT 2 (Watched Dependencies: selectedEvent, selectedType) :
+  // Kol ma el user ybadil el Event wala el Type fel barre lfou9,
+  // hadha el useEffect yfi9 bih w yab3ath direct requete lel backend bech yjib les transactions el jdida !
   useEffect(() => {
     dispatch(fetchTransactions({ event: selectedEvent, type: selectedType }));
   }, [dispatch, selectedEvent, selectedType]);
 
+  // 5. HANDLERS :
+  // handleOpenAddModal : Y7ell el modal w y7ot les valeurs par défaut
   const handleOpenAddModal = () => {
     setFormError('');
     const matchingCats = categories.filter((c) => c.type === 'revenue');
@@ -70,6 +90,8 @@ const Transactions = () => {
     setShowModal(true);
   };
 
+  // handleTypeChangeInModal : Ki tenzel 3la botona "Revenue" wala "Expense" fel modal,
+  // ybadil el type w yjib les catégories li yemchiw m3ah (mathalan ken revenue yjib sponsoring)
   const handleTypeChangeInModal = (type) => {
     const matchingCats = categories.filter((c) => c.type === type);
     setTxForm({
@@ -79,13 +101,17 @@ const Transactions = () => {
     });
   };
 
+  // handleFormSubmit : Wa9telli tenzel "Record Transaction" fel modal
+  // 1. Nthabtou fel les champs obligatoires
+  // 2. Nbathou dispatch(createTransaction(...)) lel backend
+  // 3. Ken s7i7, nsakkrou el modal
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
 
     const { event, category, type, description, amount, date } = txForm;
     if (!event || !category || !type || !description || !amount) {
-      setFormError('Please fill in all transaction fields.');
+      setFormError('Renseigner kol les champs de la transaction s il vous plaît.');
       return;
     }
 
@@ -104,16 +130,18 @@ const Transactions = () => {
       if (createTransaction.fulfilled.match(resultAction)) {
         setShowModal(false);
       } else {
-        setFormError(resultAction.payload || 'Failed to record transaction.');
+        setFormError(resultAction.payload || 'Échec de tasjil la transaction.');
       }
     } catch (err) {
-      setFormError('Failed to record transaction.');
+      setFormError('Ghalta fi tasjil la transaction.');
     }
   };
 
+  // handleDeleteTransaction : Wa9telli tenzel 3al poubelle 🗑️ fi satr transaction
+  // Yab3ath dispatch(deleteTransaction(txId)) lel Redux w yfasa5ha mel MongoDB
   const handleDeleteTransaction = async (txId, txDescription) => {
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete transaction "${txDescription}"?`
+      `Met'akked t7eb tfasa5 el transaction "${txDescription}" ?`
     );
     if (!confirmDelete) return;
 

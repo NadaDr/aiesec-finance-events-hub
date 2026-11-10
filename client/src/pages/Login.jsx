@@ -1,5 +1,13 @@
 // client/src/pages/Login.jsx
-// User login page with Redux Toolkit authentication and reusable form components
+// ======================================================================================
+// 📌 LOGIN PAGE (Belfala9i Tounsi)
+// ======================================================================================
+// Hathi el-Page mte3 el-Connexion (Login) lel Finance Hub:
+// 1) useState (formData): yched l'email wel password eli ktebhom l-utilisateur.
+// 2) useDispatch: naba3thou l-action `loginUser(formData)` lel authSlice fel Redux.
+// 3) useSelector: njibou l-loading wel error ken el mot de passe ghalet.
+// 4) navigate('/dashboard'): wa9t el login yenja7, nhezzou l-user directement lel Dashboard.
+// ======================================================================================
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,14 +19,17 @@ import aiesecLogo from '../assets/AIESEClogo.png';
 import { LogIn, Lock, Mail } from 'lucide-react';
 
 const Login = () => {
+  // useState 1: formData -> les champs email w password
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  // useState 2: localError -> ken l'utilisateur ma 3abbech les champs
   const [localError, setLocalError] = useState('');
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  // useSelector: njibou loading w error mel authSlice
   const { loading: isSubmitting, error: reduxError } = useSelector((state) => state.auth);
 
   const handleChange = (e) => {

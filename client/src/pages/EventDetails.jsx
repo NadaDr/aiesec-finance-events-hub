@@ -1,5 +1,14 @@
 // client/src/pages/EventDetails.jsx
-// Detailed view of an event showing financial summary, Add Revenue & Add Expense modals, and transaction history using Redux
+// ======================================================================================
+// 📌 EVENT DETAILS PAGE (Belfala9i Tounsi)
+// ======================================================================================
+// Hathi el-Page mte3 les détails mte3 un évènement spécifique (Revenues, Expenses, Net Balance, Transactions):
+// 1) useParams: njibou el `id` mte3 l'évènement mel URL (/events/:id).
+// 2) useEffect: nchargiw l'évènement b-`fetchEventById(id)` w les catégories b-`fetchCategories()`.
+// 3) useState (showModal, modalType, txForm): bech n7ellou popup mte3 "+ Add Revenue" walla "+ Add Expense".
+// 4) handleTxSubmit: yab3eth transaction jdida lel MongoDB b-`createTransaction()`.
+// 5) handleDeleteTransaction / handleDeleteEvent: yfasakh transaction walla event klemel mel base de données.
+// ======================================================================================
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -44,22 +53,28 @@ const formatDate = (dateStr) => {
 };
 
 const EventDetails = () => {
+  // useParams: yjbed l-id mte3 l-évènement mel lien (URL)
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  // useSelector 1: njibou l-évènement sélectionné w loading/error mel eventsSlice
   const { currentEvent, currentEventLoading, currentEventError } = useSelector(
     (state) => state.events
   );
+  // useSelector 2: état mte3 soumission transaction mel transactionsSlice
   const { isSubmitting: isTxSubmitting } = useSelector((state) => state.transactions);
+  // useSelector 3: les catégories mte3na mel categoriesSlice
   const { categories } = useSelector((state) => state.categories);
 
-  // Modal State
+  // useState 1: showModal -> yched ken el popup ma7loula (true) walla msakkra (false)
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState('revenue'); // 'revenue' or 'expense'
+  // useState 2: modalType -> ya 'revenue' ya 'expense'
+  const [modalType, setModalType] = useState('revenue');
+  // useState 3: modalError -> yched ken fama ghalka fel formulaire mte3 transaction
   const [modalError, setModalError] = useState('');
 
-  // Form State
+  // useState 4: txForm -> les données mte3 el-formulaire (category, description, amount, date)
   const [txForm, setTxForm] = useState({
     category: '',
     description: '',
@@ -67,6 +82,7 @@ const EventDetails = () => {
     date: new Date().toISOString().split('T')[0]
   });
 
+  // useEffect: yet7all wa9t el page tet7al walla l-id yetbaddel -> yjib l-event w les catégories
   useEffect(() => {
     if (id) {
       dispatch(fetchEventById(id));
@@ -74,6 +90,7 @@ const EventDetails = () => {
     }
   }, [dispatch, id]);
 
+  // Fonction t7el el modal mte3 el transaction (revenue walla expense)
   const openAddModal = (type) => {
     setModalError('');
     setModalType(type);
@@ -87,6 +104,7 @@ const EventDetails = () => {
     setShowModal(true);
   };
 
+  // Fonction tvalider w tab3eth el transaction jdida lel MongoDB
   const handleTxSubmit = async (e) => {
     e.preventDefault();
     setModalError('');
@@ -121,6 +139,7 @@ const EventDetails = () => {
     }
   };
 
+  // Fonction tfasakh transaction men west l-évènement
   const handleDeleteTransaction = async (txId, txDescription) => {
     const confirmDelete = window.confirm(
       `Delete transaction "${txDescription}"? This will update the event financials dynamically.`
@@ -133,6 +152,7 @@ const EventDetails = () => {
     }
   };
 
+  // Fonction tfasakh l-évènement kemel mel base de données
   const handleDeleteEvent = async () => {
     const eventName = currentEvent?.event?.name || 'this event';
     const confirmDelete = window.confirm(

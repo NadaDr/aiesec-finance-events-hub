@@ -1,5 +1,13 @@
 // client/src/components/Navbar.jsx
-// Exact navbar matching reference design: official blue AIESEC logo, profile avatar, hamburger menu
+// ======================================================================================
+// 📌 NAVBAR COMPONENT (Belfala9i Tounsi)
+// ======================================================================================
+// Hatha el-Navbar el-faw9ani (Header) el-thabet mte3 l'application:
+// 1) 3al issar: Logo officiel mte3 AIESEC en bleu.
+// 2) 3al ymin: L'Avatar mte3 el-User (awwel 7arf men esmou) fih Dropdown menu lel Profile w Logout.
+// 3) Bouton Hamburger Menu: y7el Drawer 3al ymin fel mobile w responsive.
+// 4) Sticky Header: yo93ed lasseq mel fou9 wa9t el user yscrolly el page louta.
+// ======================================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -20,17 +28,21 @@ import {
 } from 'lucide-react';
 
 const Navbar = () => {
+  // useSelector: njibou el user w status mte3 l'authentification mel Redux
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // useState 1: drawerOpen -> bech n7ellou w nsakkrou el drawer fel mobile (true/false)
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // useState 2: profileDropdownOpen -> y7el w ysakker el dropdown mte3 el profile sous l'avatar
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
+  // useRef: bech ncapturiw el clics lbara mel dropdown w drawer bech yetsakkrou automatiquement
   const profileRef = useRef(null);
   const drawerRef = useRef(null);
 
-  // Close menus on click outside
+  // useEffect: yrakkez EventListener lel click-outside w touche Escape mte3 el clavier
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
@@ -56,6 +68,7 @@ const Navbar = () => {
     };
   }, [drawerOpen]);
 
+  // Fonction Logout: tdeconnecti el user w trajj3ou lel Home page
   const handleLogout = () => {
     dispatch(logout());
     setProfileDropdownOpen(false);

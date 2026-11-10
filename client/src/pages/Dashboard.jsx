@@ -63,13 +63,30 @@ const formatDate = (dateStr) => {
   });
 };
 
+// ======================================================================================
+// 📌 DASHBOARD PAGE (Belfala9i Tounsi)
+// ======================================================================================
+// Hathi el-Page principale (Tableau de bord) mte3 el-Finance Hub:
+// 1) useSelector: njibou el-user connecté w les données financières (KPIs, Charts, Events, Transactions) mel Redux (eventsSlice).
+// 2) useEffect: wa9t el-composant ychargi awwel mara, naba3thou `fetchDashboardStats()` lel backend API `/api/events/dashboard/stats`.
+// 3) useState (chartView): bech l'utilisateur ykhtar ychouf l-graphe "Comparison" (Revenues vs Expenses) walla "Net Balance" (Surplus/Deficit).
+// 4) Chart.js: Bar Chart interactive yaffichi l-khedma mte3 kol Event b-chwaya alwen AIESEC officielles.
+// ======================================================================================
+
 const Dashboard = () => {
+  // dispatch: bch n3aytou l-les actions Redux
   const dispatch = useDispatch();
+
+  // useSelector 1: njibou el user connecté mel authSlice
   const { user } = useSelector((state) => state.auth);
+
+  // useSelector 2: njibou el dashboardData (stats, chartData, eventsOverview, recentTransactions) w loading/error mel eventsSlice
   const { dashboardData, loading, error } = useSelector((state) => state.events);
 
-  const [chartView, setChartView] = useState('comparison'); // 'comparison' | 'net'
+  // useState: chartView -> state local yched l-choix mte3 el graphe ('comparison' walla 'net')
+  const [chartView, setChartView] = useState('comparison');
 
+  // useEffect: yet7all f-awwel chargement mte3 el-page -> yjbed les statistiques complètes mel backend MongoDB
   useEffect(() => {
     dispatch(fetchDashboardStats());
   }, [dispatch]);
