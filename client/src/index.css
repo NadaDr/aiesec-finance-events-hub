@@ -158,7 +158,8 @@ button, input, select, textarea {
 
 .auth-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .main-content {
@@ -166,6 +167,8 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
   background-color: var(--surface);
 }
 
@@ -262,10 +265,16 @@ button, input, select, textarea {
 ------------------------------------------------------------- */
 .sidebar {
   width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  flex-shrink: 0;
   background-color: var(--background);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
   transition: transform 0.25s ease;
   z-index: 50;
 }
@@ -1070,12 +1079,20 @@ tr:hover td {
   }
   .auth-layout {
     flex-direction: column;
+    height: auto;
+    overflow: visible;
   }
   .sidebar {
     width: 100%;
+    min-width: 100%;
+    height: auto;
     position: static;
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+  .main-content {
+    height: auto;
+    overflow-y: visible;
   }
   .sidebar-menu {
     flex-direction: row;
