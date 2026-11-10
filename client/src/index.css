@@ -168,16 +168,15 @@ button, input, select, textarea {
   flex-direction: column;
   min-width: 0;
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
   background-color: var(--surface);
 }
 
 .page-content {
   flex: 1;
   padding: 2.25rem;
-  max-width: 1360px;
+  overflow-y: auto;
   width: 100%;
-  margin: 0 auto;
 }
 
 /* -------------------------------------------------------------
@@ -1092,7 +1091,7 @@ tr:hover td {
   }
   .main-content {
     height: auto;
-    overflow-y: visible;
+    overflow: visible;
   }
   .sidebar-menu {
     flex-direction: row;
@@ -1100,6 +1099,7 @@ tr:hover td {
     padding: 0.75rem;
   }
   .page-content {
+    overflow-y: visible;
     padding: 1.35rem;
   }
   .navbar-search {
@@ -1118,6 +1118,7 @@ tr:hover td {
   position: sticky;
   top: 0;
   z-index: 90;
+  flex-shrink: 0;
   border-bottom: 1px solid rgba(229, 234, 240, 0.85);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
