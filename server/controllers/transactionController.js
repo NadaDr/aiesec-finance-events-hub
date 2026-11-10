@@ -1,35 +1,43 @@
-// server/controllers/transactionController.js
-// Handles CRUD operations and filters for financial transactions
+// ==============================================================================
+// FICHIER : server/controllers/transactionController.js
+// ROLE    : Gestion des transactions financières (Revenus et Dépenses)
+// ==============================================================================
 
 const Transaction = require('../models/Transaction');
 const Event = require('../models/Event');
 const Category = require('../models/Category');
 
-// @desc    Get all transactions with optional filters (by event, by type)
-// @route   GET /api/transactions
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : getTransactions
+// ROUTE      : GET /api/transactions
+// ACCES      : Privé (Protégé par JWT)
+// ROLE       : Récupère les transactions de l'utilisateur avec filtres optionnels
+//              - Filtre par événement : ?event=<eventId>
+//              - Filtre par type      : ?type=revenue ou ?type=expense
+// ------------------------------------------------------------------------------
 const getTransactions = async (req, res) => {
   try {
     const { event, type } = req.query;
 
-    // Base query: ensure transactions belong to the authenticated user
+    // Filtre de base : seules les transactions créées par l'utilisateur connecté
     const query = { createdBy: req.user._id };
 
-    // Filter by Event ID if provided
+    // Filtre optionnel par événement
     if (event && event !== 'all') {
       query.event = event;
     }
 
-    // Filter by Transaction Type (revenue / expense) if provided
+    // Filtre optionnel par type (revenue ou expense)
     if (type && ['revenue', 'expense'].includes(type.toLowerCase())) {
       query.type = type.toLowerCase();
     }
 
+    // Recherche dans MongoDB avec jointures (populate) sur Event et Category
     const transactions = await Transaction.find(query)
       .populate('event', 'name location startDate')
       .populate('category', 'name type')
       .populate('createdBy', 'name email')
-      .sort({ date: -1 });
+      .sort({ date: -1 }); // Triées par date décroissante
 
     return res.status(200).json({
       success: true,
@@ -40,42 +48,47 @@ const getTransactions = async (req, res) => {
     console.error('[Transaction Controller] getTransactions error:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve transactions.'
+      message: 'Impossible de récupérer les transactions.'
     });
   }
 };
 
-// @desc    Create a new transaction (revenue or expense)
-// @route   POST /api/transactions
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : createTransaction
+// ROUTE      : POST /api/transactions
+// ACCES      : Privé
+// ROLE       : Enregistre une nouvelle transaction (recette ou dépense)
+// ------------------------------------------------------------------------------
 const createTransaction = async (req, res) => {
   try {
     const { event, category, type, description, amount, date } = req.body;
 
+    // 1. Validation de la présence des champs obligatoires
     if (!event || !category || !type || !description || amount === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide event, category, type, description, and amount.'
+        message: 'Veuillez renseigner l événement, la catégorie, le type, la description et le montant.'
       });
     }
 
-    const normalizedType = type.toLowerCase().trim();
-    if (!['revenue', 'expense'].includes(normalizedType)) {
+    // 2. Validation du type (doit être 'revenue' ou 'expense')
+    if (!['revenue', 'expense'].includes(type.toLowerCase())) {
       return res.status(400).json({
         success: false,
-        message: 'Transaction type must be "revenue" or "expense".'
+        message: 'Le type de transaction doit être soit "revenue", soit "expense".'
       });
     }
 
-    const numericAmount = Number(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
+    // 3. Validation du montant (doit être un nombre strictement positif)
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Amount must be a positive number greater than 0.'
+        message: 'Le montant de la transaction doit être un nombre positif supérieur à zéro.'
       });
     }
 
-    // Verify event exists and belongs to user
+    // 4. Vérifier que l'événement associé existe et appartient à l'utilisateur
     const eventExists = await Event.findOne({
       _id: event,
       createdBy: req.user._id
@@ -83,56 +96,62 @@ const createTransaction = async (req, res) => {
     if (!eventExists) {
       return res.status(404).json({
         success: false,
-        message: 'Associated event not found or access denied.'
+        message: 'Événement introuvable ou accès refusé.'
       });
     }
 
-    // Verify category exists
+    // 5. Vérifier que la catégorie existe
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
       return res.status(404).json({
         success: false,
-        message: 'Selected category does not exist.'
+        message: 'Catégorie financière introuvable.'
       });
     }
 
+    // 6. Création de la transaction dans MongoDB
     const transaction = await Transaction.create({
       event,
       category,
-      type: normalizedType,
+      type: type.toLowerCase(),
       description: description.trim(),
-      amount: numericAmount,
+      amount: numAmount,
       date: date ? new Date(date) : new Date(),
       createdBy: req.user._id
     });
 
-    const populatedTransaction = await Transaction.findById(transaction._id)
-      .populate('event', 'name')
+    // 7. Rechargement avec les informations jointes pour le retour client
+    const populatedTx = await Transaction.findById(transaction._id)
+      .populate('event', 'name location')
       .populate('category', 'name type')
       .populate('createdBy', 'name email');
 
     return res.status(201).json({
       success: true,
-      message: 'Transaction recorded successfully.',
-      transaction: populatedTransaction
+      message: 'Transaction enregistrée avec succès.',
+      transaction: populatedTx
     });
   } catch (error) {
     console.error('[Transaction Controller] createTransaction error:', error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to record transaction.'
+      message: error.message || 'Impossible d enregistrer la transaction.'
     });
   }
 };
 
-// @desc    Delete a transaction
-// @route   DELETE /api/transactions/:id
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : deleteTransaction
+// ROUTE      : DELETE /api/transactions/:id
+// ACCES      : Privé
+// ROLE       : Supprime une transaction financière existante
+// ------------------------------------------------------------------------------
 const deleteTransaction = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const transaction = await Transaction.findOne({
+    // Recherche et suppression uniquement si la transaction appartient à l'utilisateur
+    const transaction = await Transaction.findOneAndDelete({
       _id: id,
       createdBy: req.user._id
     });
@@ -140,21 +159,19 @@ const deleteTransaction = async (req, res) => {
     if (!transaction) {
       return res.status(404).json({
         success: false,
-        message: 'Transaction not found or access denied.'
+        message: 'Transaction introuvable ou accès non autorisé.'
       });
     }
 
-    await Transaction.findByIdAndDelete(id);
-
     return res.status(200).json({
       success: true,
-      message: 'Transaction deleted successfully.'
+      message: 'Transaction supprimée avec succès.'
     });
   } catch (error) {
     console.error('[Transaction Controller] deleteTransaction error:', error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to delete transaction.'
+      message: 'Impossible de supprimer la transaction.'
     });
   }
 };
@@ -164,4 +181,3 @@ module.exports = {
   createTransaction,
   deleteTransaction
 };
-

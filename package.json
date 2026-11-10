@@ -8,3 +8,4 @@
     "vercel-build": "cd client && npm install && npm run build"
   }
 }
+

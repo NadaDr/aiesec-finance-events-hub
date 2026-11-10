@@ -1,16 +1,24 @@
-// server/controllers/eventController.js
-// Handles CRUD operations and financial aggregations for Events
+// ==============================================================================
+// BLASA   : server/controllers/eventController.js
+// CHNOWA  : El Khidma mta3 les événements (Calculs flous, Ajout, Faskh, Dashboard)
+// ==============================================================================
 
 const Event = require('../models/Event');
 const Transaction = require('../models/Transaction');
 
-// Helper function to calculate financial metrics for a specific event
+// ------------------------------------------------------------------------------
+// FONCTION : calculateEventFinancials
+// KHEDMETHA: Ta7seb en direct kol madkhoul w masrouf mta3 Event mo3ayan
+//            Revenues - Expenses = Net Balance (Raba7 wala Khaser)
+// ------------------------------------------------------------------------------
 const calculateEventFinancials = async (eventId) => {
+  // 1. Njibou kol el transactions eli marboutin b-hadha l'Event
   const transactions = await Transaction.find({ event: eventId });
 
   let totalRevenue = 0;
   let totalExpenses = 0;
 
+  // 2. Ndourou 3lihom bel ka3ba: ken revenue nzidou fel madkhoul, ken expense fel masrouf
   transactions.forEach((tx) => {
     if (tx.type === 'revenue') {
       totalRevenue += Number(tx.amount);
@@ -19,8 +27,10 @@ const calculateEventFinancials = async (eventId) => {
     }
   });
 
+  // 3. El Bilan Net : Madkhoul na9es Masrouf
   const netBalance = totalRevenue - totalExpenses;
 
+  // 4. Statut : Raba7 (positive) wala déficitaire (negative)
   let financialStatus = 'no_transactions';
   if (transactions.length > 0) {
     financialStatus = netBalance >= 0 ? 'positive' : 'negative';
@@ -35,17 +45,19 @@ const calculateEventFinancials = async (eventId) => {
   };
 };
 
-// @desc    Get all events for the authenticated user with financial summaries
-// @route   GET /api/events
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : getEvents
+// ROUTE      : GET /api/events
+// KHEDMETOU  : Yjib les events mta3 el user mconnecti m3ahom calculat el flous
+// ------------------------------------------------------------------------------
 const getEvents = async (req, res) => {
   try {
-    // Retrieve events created by this user, populated with creator info
+    // 1. Nlawjou 3al events eli 3malhom el user mconnecti (triés mel jdid lel 9dim)
     const events = await Event.find({ createdBy: req.user._id })
       .populate('createdBy', 'name email')
       .sort({ startDate: -1 });
 
-    // Calculate dynamic financials for each event
+    // 2. Kol event n7esboulou floussou en direct (Revenues, Expenses, Balance)
     const eventsWithFinancials = await Promise.all(
       events.map(async (event) => {
         const financials = await calculateEventFinancials(event._id);
@@ -56,27 +68,31 @@ const getEvents = async (req, res) => {
       })
     );
 
+    // 3. Nraj3ou el liste kemla lil frontend
     return res.status(200).json({
       success: true,
       count: eventsWithFinancials.length,
       events: eventsWithFinancials
     });
   } catch (error) {
-    console.error('[Event Controller] getEvents error:', error.message);
+    console.error('[Event Controller] Ghalta fi getEvents:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve events.'
+      message: 'Ma najamnech njibou les événements.'
     });
   }
 };
 
-// @desc    Get single event by ID with its transactions & financial metrics
-// @route   GET /api/events/:id
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : getEventById
+// ROUTE      : GET /api/events/:id
+// KHEDMETOU  : Yjib event wa7ed b-tafasilou l-kol w historique les transactions mte3ou
+// ------------------------------------------------------------------------------
 const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 1. Nthabtou ken l'event mawjoud w teba3 el user mconnecti
     const event = await Event.findOne({
       _id: id,
       createdBy: req.user._id
@@ -85,16 +101,17 @@ const getEventById = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found or access denied.'
+        message: 'Event hadha mehouche mawjoud wala ma 3andekch el 7a9 fih.'
       });
     }
 
-    // Get all transactions for this event with category details
+    // 2. Njibou kol el transactions mte3ou m3a esm el catégorie w chkoun 3malha
     const transactions = await Transaction.find({ event: id })
       .populate('category', 'name type')
       .populate('createdBy', 'name email')
       .sort({ date: -1 });
 
+    // 3. N7esbou l-flous mte3ou
     const financials = await calculateEventFinancials(id);
 
     return res.status(200).json({
@@ -106,35 +123,40 @@ const getEventById = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Event Controller] getEventById error:', error.message);
+    console.error('[Event Controller] Ghalta fi getEventById:', error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to retrieve event details.'
+      message: error.message || 'Moshkla fi chargement l-event.'
     });
   }
 };
 
-// @desc    Create a new event
-// @route   POST /api/events
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : createEvent
+// ROUTE      : POST /api/events
+// KHEDMETOU  : Ysajjel événement jdid fil base MongoDB
+// ------------------------------------------------------------------------------
 const createEvent = async (req, res) => {
   try {
     const { name, description, location, startDate, endDate, budget } = req.body;
 
+    // 1. Nthabtou fel les champs obligatoires (Esm, Blasa, Date bdeya w nheya)
     if (!name || !location || !startDate || !endDate) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide event name, location, start date, and end date.'
+        message: 'Aman 7ot esm l-event, el blasa, w date el bdeya wel nheya.'
       });
     }
 
+    // 2. Nthabtou fel les dates (ma yjich date el bdeya ba3d date el nheya)
     if (new Date(startDate) > new Date(endDate)) {
       return res.status(400).json({
         success: false,
-        message: 'Event start date cannot be after the end date.'
+        message: 'Date el bdeya ma yjich tkoun ba3d date el nheya.'
       });
     }
 
+    // 3. Nasn3ou l'event fil base w nlass9ouh bel user mconnecti (createdBy: req.user._id)
     const event = await Event.create({
       name: name.trim(),
       description: description ? description.trim() : '',
@@ -152,7 +174,7 @@ const createEvent = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Event created successfully.',
+      message: 'Event tsajjel b-naje7.',
       event: {
         ...populatedEvent.toObject(),
         totalRevenue: 0,
@@ -163,21 +185,24 @@ const createEvent = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Event Controller] createEvent error:', error.message);
+    console.error('[Event Controller] Ghalta fi createEvent:', error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to create event.'
+      message: error.message || 'Moshkla fi sna3an l-event.'
     });
   }
 };
 
-// @desc    Delete an event and its associated transactions (Cascading delete)
-// @route   DELETE /api/events/:id
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : deleteEvent (Cascade Delete / Faskh bel Cascade)
+// ROUTE      : DELETE /api/events/:id
+// KHEDMETOU  : Yfasa5 l'événement w en même temps YFASA5 KOL EL TRANSACTIONS mte3ou
+// ------------------------------------------------------------------------------
 const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 1. Nthabtou ken l'event mawjoud w teba3 el user
     const event = await Event.findOne({
       _id: id,
       createdBy: req.user._id
@@ -186,46 +211,49 @@ const deleteEvent = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found or access denied.'
+        message: 'Event hadha mehouche mawjoud wala ma 3andekch el 7a9 tfaskhou.'
       });
     }
 
-    // Specification requirement: Safely remove all associated transactions to avoid orphan data
+    // 2. EL FAZA EL MOUTLOUBA (Cascade Delete):
+    // Nfas5ou kol les transactions marboutin b-hadha l-event bech ma yo93douch flous orphelins
     const deletedTransactionsResult = await Transaction.deleteMany({ event: id });
 
-    // Delete the event
+    // 3. Nfas5ou l'event nafssou
     await Event.findByIdAndDelete(id);
 
     return res.status(200).json({
       success: true,
-      message: `Event "${event.name}" and its ${deletedTransactionsResult.deletedCount} associated transaction(s) have been successfully deleted.`
+      message: `L'event "${event.name}" tfasa5 m3a ${deletedTransactionsResult.deletedCount} transaction(s) teb3inou.`
     });
   } catch (error) {
-    console.error('[Event Controller] deleteEvent error:', error.message);
+    console.error('[Event Controller] Ghalta fi deleteEvent:', error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to delete event.'
+      message: error.message || 'Moshkla fi faskhan l-event.'
     });
   }
 };
 
-// @desc    Get complete dashboard summary statistics & charts data dynamically
-// @route   GET /api/events/dashboard/stats
-// @access  Private
+// ------------------------------------------------------------------------------
+// CONTROLLER : getDashboardStats
+// ROUTE      : GET /api/events/dashboard/stats
+// KHEDMETOU  : Y7adher les chiffres mta3 el Dashboard wel donnee mta3 graphe Recharts
+// ------------------------------------------------------------------------------
 const getDashboardStats = async (req, res) => {
   try {
-    // 1. Get all events created by user
+    // 1. Njibou les events l-kol mta3 el user
     const events = await Event.find({ createdBy: req.user._id }).sort({
       startDate: -1
     });
 
-    // 2. Get all transactions created by user
+    // 2. Njibou les transactions l-kol mta3 el user
     const transactions = await Transaction.find({ createdBy: req.user._id })
       .populate('event', 'name')
       .populate('category', 'name type')
       .sort({ date: -1 });
 
-    // 3. Compute overall financial KPI values dynamically
+    // 3. N7esbou el totaux l-kol mta3 l'organisation (Global KPIs)
     let totalRevenue = 0;
     let totalExpenses = 0;
 
@@ -240,7 +268,7 @@ const getDashboardStats = async (req, res) => {
     const netBalance = totalRevenue - totalExpenses;
     const totalEvents = events.length;
 
-    // 4. Compute per-event breakdown for Events Overview table and Recharts Chart
+    // 4. Synthèse par event bech n7otouhom fel tableau mta3 el Dashboard
     const eventsOverview = await Promise.all(
       events.map(async (event) => {
         const financials = await calculateEventFinancials(event._id);
@@ -259,7 +287,8 @@ const getDashboardStats = async (req, res) => {
       })
     );
 
-    // 5. Format chart data for Recharts (Revenue vs Expenses across events)
+    // 5. Nformatiw les données lel composant Recharts (BarChart)
+    // Structure: [ { name: "Global Village", Revenue: 6000, Expenses: 2000 }, ... ]
     const chartData = eventsOverview.map((item) => ({
       name: item.name.length > 18 ? item.name.substring(0, 16) + '...' : item.name,
       fullName: item.name,
@@ -268,9 +297,10 @@ const getDashboardStats = async (req, res) => {
       NetBalance: item.netBalance
     }));
 
-    // 6. Recent transactions (latest 5)
+    // 6. Nkhalliw ken e5er 6 transactions jdod
     const recentTransactions = transactions.slice(0, 6);
 
+    // 7. Nraj3ou kol chay lel React Dashboard
     return res.status(200).json({
       success: true,
       stats: {
@@ -284,10 +314,10 @@ const getDashboardStats = async (req, res) => {
       recentTransactions
     });
   } catch (error) {
-    console.error('[Event Controller] getDashboardStats error:', error.message);
+    console.error('[Event Controller] Ghalta fi getDashboardStats:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve dashboard statistics.'
+      message: 'Moshkla fi calculat el Dashboard.'
     });
   }
 };
@@ -299,4 +329,3 @@ module.exports = {
   deleteEvent,
   getDashboardStats
 };
-
