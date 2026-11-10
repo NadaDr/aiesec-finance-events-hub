@@ -1,13 +1,14 @@
 // client/src/pages/Login.jsx
-// User login page with Redux Toolkit authentication
+// User login page with Redux Toolkit authentication and reusable form components
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../redux/authSlice';
 import Navbar from '../components/Navbar';
+import { Button, Input, Alert } from '../components/common';
 import aiesecLogo from '../assets/AIESEClogo.png';
-import { LogIn, Lock, Mail, AlertCircle } from 'lucide-react';
+import { LogIn, Lock, Mail } from 'lucide-react';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -66,83 +67,44 @@ const Login = () => {
             Sign in to manage your AIESEC event finances
           </p>
 
-          {displayError && (
-            <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={16} />
-              <span>{displayError}</span>
-            </div>
-          )}
+          <Alert type="danger" message={displayError} onClose={() => setLocalError('')} />
 
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  className="form-input"
-                  style={{ width: '100%', paddingLeft: '2.4rem' }}
-                  placeholder="name@aiesec.net"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-                <Mail
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-secondary)'
-                  }}
-                />
-              </div>
-            </div>
+            <Input
+              label="Email Address"
+              name="email"
+              type="email"
+              placeholder="name@aiesec.net"
+              value={formData.email}
+              onChange={handleChange}
+              icon={Mail}
+              required
+              autoComplete="email"
+            />
 
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  className="form-input"
-                  style={{ width: '100%', paddingLeft: '2.4rem' }}
-                  placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-                <Lock
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-secondary)'
-                  }}
-                />
-              </div>
-            </div>
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              icon={Lock}
+              required
+              autoComplete="current-password"
+            />
 
-            <button
+            <Button
               type="submit"
-              className="btn btn-primary"
-              style={{ width: '100%', marginTop: '1rem' }}
-              disabled={isSubmitting}
+              variant="primary"
+              size="md"
+              fullWidth
+              loading={isSubmitting}
+              icon={LogIn}
+              style={{ marginTop: '1rem' }}
             >
-              {isSubmitting ? (
-                <span>Signing in...</span>
-              ) : (
-                <>
-                  <LogIn size={16} />
-                  <span>Login</span>
-                </>
-              )}
-            </button>
+              Login
+            </Button>
           </form>
 
           <div

@@ -1,13 +1,14 @@
 // client/src/pages/Register.jsx
-// User registration page with Redux Toolkit authentication
+// User registration page with Redux Toolkit authentication and reusable form components
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../redux/authSlice';
 import Navbar from '../components/Navbar';
+import { Button, Input, Alert } from '../components/common';
 import aiesecLogo from '../assets/AIESEClogo.png';
-import { UserPlus, User, Lock, Mail, AlertCircle } from 'lucide-react';
+import { UserPlus, User, Lock, Mail } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -80,137 +81,68 @@ const Register = () => {
             Join AIESEC Finance Hub to manage event budgets
           </p>
 
-          {displayError && (
-            <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={16} />
-              <span>{displayError}</span>
-            </div>
-          )}
+          <Alert type="danger" message={displayError} onClose={() => setLocalError('')} />
 
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="name">Full Name</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  className="form-input"
-                  style={{ width: '100%', paddingLeft: '2.4rem' }}
-                  placeholder="e.g. Nada Dridi"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
-                <User
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-secondary)'
-                  }}
-                />
-              </div>
-            </div>
+            <Input
+              label="Full Name"
+              name="name"
+              type="text"
+              placeholder="e.g. Nada Dridi"
+              value={formData.name}
+              onChange={handleChange}
+              icon={User}
+              required
+              autoComplete="name"
+            />
 
-            <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  className="form-input"
-                  style={{ width: '100%', paddingLeft: '2.4rem' }}
-                  placeholder="name@aiesec.net"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-                <Mail
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-secondary)'
-                  }}
-                />
-              </div>
-            </div>
+            <Input
+              label="Email Address"
+              name="email"
+              type="email"
+              placeholder="name@aiesec.net"
+              value={formData.email}
+              onChange={handleChange}
+              icon={Mail}
+              required
+              autoComplete="email"
+            />
 
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  className="form-input"
-                  style={{ width: '100%', paddingLeft: '2.4rem' }}
-                  placeholder="Minimum 6 characters"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-                <Lock
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-secondary)'
-                  }}
-                />
-              </div>
-            </div>
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="Minimum 6 characters"
+              value={formData.password}
+              onChange={handleChange}
+              icon={Lock}
+              required
+              autoComplete="new-password"
+            />
 
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  className="form-input"
-                  style={{ width: '100%', paddingLeft: '2.4rem' }}
-                  placeholder="Re-enter your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-                <Lock
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-secondary)'
-                  }}
-                />
-              </div>
-            </div>
+            <Input
+              label="Confirm Password"
+              name="confirmPassword"
+              type="password"
+              placeholder="Re-enter your password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              icon={Lock}
+              required
+              autoComplete="new-password"
+            />
 
-            <button
+            <Button
               type="submit"
-              className="btn btn-primary"
-              style={{ width: '100%', marginTop: '1rem' }}
-              disabled={isSubmitting}
+              variant="primary"
+              size="md"
+              fullWidth
+              loading={isSubmitting}
+              icon={UserPlus}
+              style={{ marginTop: '1rem' }}
             >
-              {isSubmitting ? (
-                <span>Creating Account...</span>
-              ) : (
-                <>
-                  <UserPlus size={16} />
-                  <span>Create Account</span>
-                </>
-              )}
-            </button>
+              Create Account
+            </Button>
           </form>
 
           <div

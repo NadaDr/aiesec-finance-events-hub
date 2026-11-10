@@ -32,16 +32,17 @@
   --font-heading: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Shape */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-full: 9999px;
+  /* Shape — Sharpened Edges for High-Precision Energetic Professionalism */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-full: 4px; /* Crisp fintech tags instead of oval pills */
 
-  /* Shadows */
-  --shadow-card: 0 4px 20px rgba(0, 59, 112, 0.05);
-  --shadow-hover: 0 8px 30px rgba(0, 59, 112, 0.09);
-  --shadow-modal: 0 20px 40px rgba(0, 59, 112, 0.15);
+  /* Shadows — Crisp & Subtle */
+  --shadow-card: 0 1px 3px rgba(0, 59, 112, 0.06), 0 1px 2px rgba(0, 59, 112, 0.04);
+  --shadow-hover: 0 4px 14px rgba(0, 59, 112, 0.09);
+  --shadow-modal: 0 16px 36px rgba(0, 59, 112, 0.2);
 
   --header-height: 72px;
   --sidebar-width: 260px;
@@ -351,12 +352,12 @@ button, input, select, textarea {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.65rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   border: 1px solid transparent;
   outline: none;
 }
@@ -364,12 +365,12 @@ button, input, select, textarea {
 .btn-primary {
   background-color: var(--brand-primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(3, 126, 243, 0.25);
+  box-shadow: 0 1px 3px rgba(3, 126, 243, 0.25);
 }
 
 .btn-primary:hover {
   background-color: var(--brand-primary-hover);
-  box-shadow: 0 4px 14px rgba(3, 126, 243, 0.35);
+  box-shadow: 0 3px 10px rgba(3, 126, 243, 0.35);
   transform: translateY(-1px);
 }
 
@@ -388,7 +389,7 @@ button, input, select, textarea {
 .btn-success {
   background-color: var(--revenue);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(32, 180, 134, 0.25);
+  box-shadow: 0 1px 3px rgba(32, 180, 134, 0.25);
 }
 
 .btn-success:hover {
@@ -399,7 +400,7 @@ button, input, select, textarea {
 .btn-danger {
   background-color: var(--expense);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(240, 100, 117, 0.25);
+  box-shadow: 0 1px 3px rgba(240, 100, 117, 0.25);
 }
 
 .btn-danger:hover {
@@ -410,7 +411,7 @@ button, input, select, textarea {
 .btn-outline-danger {
   background-color: transparent;
   color: var(--expense);
-  border-color: rgba(240, 100, 117, 0.3);
+  border-color: rgba(240, 100, 117, 0.4);
 }
 
 .btn-outline-danger:hover {
@@ -418,72 +419,116 @@ button, input, select, textarea {
   border-color: var(--expense);
 }
 
+.btn-outline-primary {
+  background-color: transparent;
+  color: var(--brand-primary);
+  border-color: rgba(3, 126, 243, 0.4);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--brand-light);
+  border-color: var(--brand-primary);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background-color: var(--surface);
+  color: var(--text-primary);
+}
+
+.btn-full-width {
+  width: 100%;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 .btn-sm {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.825rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
   border-radius: var(--radius-sm);
 }
 
 .btn-lg {
-  padding: 0.85rem 1.85rem;
-  font-size: 1.05rem;
-  border-radius: var(--radius-md);
+  padding: 0.75rem 1.6rem;
+  font-size: 1rem;
+  border-radius: var(--radius-sm);
 }
 
 /* -------------------------------------------------------------
-   Badges & Status Indicators
+   Badges & Status Indicators (Sharpened Tag Styling)
 ------------------------------------------------------------- */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: var(--radius-full);
-  font-size: 0.785rem;
-  font-weight: 600;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-xs);
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: capitalize;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
 }
 
 .badge-revenue {
   background-color: var(--revenue-bg);
   color: var(--revenue);
+  border-color: rgba(32, 180, 134, 0.25);
 }
 
 .badge-expense {
   background-color: var(--expense-bg);
   color: var(--expense);
+  border-color: rgba(240, 100, 117, 0.25);
 }
 
 .badge-positive {
   background-color: var(--revenue-bg);
   color: var(--revenue);
+  border-color: rgba(32, 180, 134, 0.25);
 }
 
 .badge-negative {
   background-color: var(--expense-bg);
   color: var(--expense);
+  border-color: rgba(240, 100, 117, 0.25);
 }
 
 .badge-neutral {
   background-color: #f1f5f9;
   color: var(--text-secondary);
+  border-color: rgba(100, 116, 139, 0.2);
 }
 
 .badge-warning {
   background-color: var(--warning-bg);
   color: #b47814;
+  border-color: rgba(244, 183, 64, 0.3);
+}
+
+.badge-primary {
+  background-color: var(--brand-light);
+  color: var(--brand-primary);
+  border-color: rgba(3, 126, 243, 0.25);
 }
 
 /* -------------------------------------------------------------
-   Cards & Financial KPI Grid
+   Cards & Financial KPI Grid (Sharpened Edges)
 ------------------------------------------------------------- */
 .card {
   background-color: var(--background);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
   padding: 1.6rem;
   box-shadow: var(--shadow-card);
-  transition: all 0.2s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .card:hover {
@@ -501,27 +546,28 @@ button, input, select, textarea {
 .kpi-card {
   background-color: var(--background);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.45rem;
+  border-radius: var(--radius-sm);
+  padding: 1.35rem 1.45rem;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   box-shadow: var(--shadow-card);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .kpi-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-hover);
+  border-color: var(--border-hover);
 }
 
 .kpi-title {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .kpi-value {
@@ -534,9 +580,9 @@ button, input, select, textarea {
 }
 
 .kpi-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -575,12 +621,12 @@ button, input, select, textarea {
 }
 
 /* -------------------------------------------------------------
-   Tables
+   Tables (Sharpened with Enhanced Contrast & Zebra Striping)
 ------------------------------------------------------------- */
 .table-container {
   background-color: var(--background);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
   overflow-x: auto;
   box-shadow: var(--shadow-card);
 }
@@ -593,30 +639,34 @@ table {
 }
 
 th {
-  background-color: #fafbfc;
+  background-color: #fafbfd;
   color: var(--text-secondary);
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 0.95rem 1.25rem;
+  padding: 0.9rem 1.25rem;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 td {
-  padding: 1.1rem 1.25rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   color: var(--text-primary);
 }
 
-tr:last-child td {
-  border-bottom: none;
+tbody tr:nth-child(even) {
+  background-color: #fafcfe;
 }
 
-tr:hover td {
-  background-color: var(--brand-light);
+tbody tr:hover td {
+  background-color: #f0f7ff !important;
+}
+
+tr:last-child td {
+  border-bottom: none;
 }
 
 .amount-revenue {
@@ -661,21 +711,21 @@ tr:hover td {
   flex-wrap: wrap;
   margin-bottom: 1.5rem;
   background-color: var(--background);
-  padding: 1.1rem 1.35rem;
-  border-radius: var(--radius-lg);
+  padding: 0.9rem 1.25rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
 }
 
 .form-select, .form-input {
-  padding: 0.65rem 0.95rem;
+  padding: 0.6rem 0.9rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   background-color: #fff;
   color: var(--text-primary);
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .form-select:focus, .form-input:focus {
@@ -684,7 +734,7 @@ tr:hover td {
 }
 
 /* -------------------------------------------------------------
-   Modals
+   Modals (Sharpened)
 ------------------------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -700,7 +750,7 @@ tr:hover td {
 
 .modal-content {
   background-color: var(--background);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   max-width: 520px;
   width: 100%;
   padding: 2.25rem;
@@ -708,6 +758,7 @@ tr:hover td {
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
+  border: 1px solid rgba(229, 234, 240, 0.8);
 }
 
 .modal-header {
@@ -733,8 +784,8 @@ tr:hover td {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-xs);
+  transition: all 0.18s ease;
 }
 
 .modal-close:hover {
@@ -1172,7 +1223,7 @@ tr:hover td {
 .ref-search-input {
   width: 100%;
   padding: 0.58rem 1.25rem 0.58rem 2.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-sm);
   background-color: #F1F4F8;
   border: 1px solid transparent;
   font-size: 0.9rem;
@@ -1238,7 +1289,7 @@ tr:hover td {
 .ref-menu-btn {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   border: none;
   display: flex;
@@ -1396,7 +1447,7 @@ tr:hover td {
   border: none;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1557,9 +1608,9 @@ tr:hover td {
   font-weight: 600;
   font-size: 1.05rem;
   padding: 0.88rem 2.25rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  box-shadow: 0 6px 20px rgba(3, 126, 243, 0.35);
+  box-shadow: 0 4px 14px rgba(3, 126, 243, 0.35);
   transition: all 0.25s ease;
 }
 

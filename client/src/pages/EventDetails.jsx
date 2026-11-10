@@ -1,24 +1,26 @@
 // client/src/pages/EventDetails.jsx
-// Detailed view of an event showing financial summary, Add Revenue & Add Expense modals, and transaction history
+// Detailed view of an event showing financial summary, Add Revenue & Add Expense modals, and transaction history using Redux
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchEventById, deleteEvent } from '../redux/eventsSlice';
+import { createTransaction, deleteTransaction } from '../redux/transactionsSlice';
+import { fetchCategories } from '../redux/categoriesSlice';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import FinancialCard from '../components/FinancialCard';
 import TransactionTable from '../components/TransactionTable';
+import { Button, Input, Select, Modal, Alert, Spinner, Badge } from '../components/common';
 import {
   ArrowLeft,
-  Plus,
-  X,
   MapPin,
   Calendar,
   Wallet,
   TrendingUp,
   TrendingDown,
   Trash2,
-  AlertCircle
+  DollarSign
 } from 'lucide-react';
 
 const formatTND = (amount) => {
@@ -44,16 +46,18 @@ const formatDate = (dateStr) => {
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [event, setEvent] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { currentEvent, currentEventLoading, currentEventError } = useSelector(
+    (state) => state.events
+  );
+  const { isSubmitting: isTxSubmitting } = useSelector((state) => state.transactions);
+  const { categories } = useSelector((state) => state.categories);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('revenue'); // 'revenue' or 'expense'
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState('');
 
   // Form State
   const [txForm, setTxForm] = useState({
@@ -63,41 +67,16 @@ const EventDetails = () => {
     date: new Date().toISOString().split('T')[0]
   });
 
-  const fetchEventData = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/events/${id}`);
-      if (res.data.success) {
-        setEvent(res.data.event);
-      }
-    } catch (err) {
-      console.error('Error fetching event details:', err);
-      setError('Event not found or access denied.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const res = await api.get('/categories');
-      if (res.data.success) {
-        setCategories(res.data.categories);
-      }
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    }
-  };
-
   useEffect(() => {
-    fetchEventData();
-    fetchCategories();
-  }, [id]);
+    if (id) {
+      dispatch(fetchEventById(id));
+      dispatch(fetchCategories());
+    }
+  }, [dispatch, id]);
 
   const openAddModal = (type) => {
-    setError('');
+    setModalError('');
     setModalType(type);
-    // Find first matching category for convenience
     const matchingCats = categories.filter((c) => c.type === type);
     setTxForm({
       category: matchingCats.length > 0 ? matchingCats[0]._id : '',
@@ -110,32 +89,35 @@ const EventDetails = () => {
 
   const handleTxSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setModalError('');
 
     const { category, description, amount, date } = txForm;
     if (!category || !description || !amount) {
-      setError('Please fill in all transaction fields.');
+      setModalError('Please fill in all transaction fields.');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      const res = await api.post('/transactions', {
-        event: id,
-        category,
-        type: modalType,
-        description,
-        amount: Number(amount),
-        date
-      });
-      if (res.data.success) {
+      const resultAction = await dispatch(
+        createTransaction({
+          event: id,
+          category,
+          type: modalType,
+          description,
+          amount: Number(amount),
+          date
+        })
+      );
+
+      if (createTransaction.fulfilled.match(resultAction)) {
         setShowModal(false);
-        fetchEventData();
+        // Refresh event details to update live calculated totals and table
+        dispatch(fetchEventById(id));
+      } else {
+        setModalError(resultAction.payload || 'Failed to record transaction.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to record transaction.');
-    } finally {
-      setIsSubmitting(false);
+      setModalError('Failed to record transaction.');
     }
   };
 
@@ -145,42 +127,39 @@ const EventDetails = () => {
     );
     if (!confirmDelete) return;
 
-    try {
-      await api.delete(`/transactions/${txId}`);
-      fetchEventData();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete transaction.');
+    const resultAction = await dispatch(deleteTransaction(txId));
+    if (deleteTransaction.fulfilled.match(resultAction)) {
+      dispatch(fetchEventById(id));
     }
   };
 
   const handleDeleteEvent = async () => {
+    const eventName = currentEvent?.event?.name || 'this event';
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete "${event.name}" and all its financial records? This action cannot be undone.`
+      `Are you sure you want to delete "${eventName}" and all its financial records? This action cannot be undone.`
     );
     if (!confirmDelete) return;
 
-    try {
-      await api.delete(`/events/${id}`);
+    const resultAction = await dispatch(deleteEvent(id));
+    if (deleteEvent.fulfilled.match(resultAction)) {
       navigate('/events');
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete event.');
     }
   };
 
-  if (loading) {
+  if (currentEventLoading) {
     return (
       <div className="auth-layout">
         <Sidebar />
         <div className="main-content">
           <Navbar />
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading event financial details...</p>
-          </div>
+          <Spinner text="Loading event financial details from MongoDB..." />
         </div>
       </div>
     );
   }
+
+  const event = currentEvent?.event;
+  const transactions = currentEvent?.transactions || [];
 
   if (!event) {
     return (
@@ -189,10 +168,11 @@ const EventDetails = () => {
         <div className="main-content">
           <Navbar />
           <div className="page-content">
-            <div className="alert alert-danger">{error || 'Event not found.'}</div>
-            <Link to="/events" className="btn btn-secondary">
-              <ArrowLeft size={16} />
-              <span>Back to Events</span>
+            <Alert type="danger" message={currentEventError || 'Event not found.'} />
+            <Link to="/events" style={{ textDecoration: 'none' }}>
+              <Button variant="secondary" icon={ArrowLeft}>
+                Back to Events
+              </Button>
             </Link>
           </div>
         </div>
@@ -220,7 +200,8 @@ const EventDetails = () => {
                 gap: '0.4rem',
                 color: 'var(--text-secondary)',
                 fontSize: '0.875rem',
-                fontWeight: 500
+                fontWeight: 500,
+                textDecoration: 'none'
               }}
             >
               <ArrowLeft size={16} />
@@ -237,9 +218,9 @@ const EventDetails = () => {
                     {event.name}
                   </h1>
                   {event.netBalance >= 0 ? (
-                    <span className="badge badge-positive">Positive Surplus</span>
+                    <Badge variant="positive">Positive Surplus</Badge>
                   ) : (
-                    <span className="badge badge-negative">Budget Deficit</span>
+                    <Badge variant="negative">Budget Deficit</Badge>
                   )}
                 </div>
 
@@ -269,27 +250,26 @@ const EventDetails = () => {
 
               {/* Action Buttons: Add Revenue, Add Expense, Delete */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <button
+                <Button
+                  variant="success"
+                  icon={TrendingUp}
                   onClick={() => openAddModal('revenue')}
-                  className="btn btn-success"
                 >
-                  <TrendingUp size={16} />
-                  <span>+ Add Revenue</span>
-                </button>
-                <button
+                  + Add Revenue
+                </Button>
+                <Button
+                  variant="danger"
+                  icon={TrendingDown}
                   onClick={() => openAddModal('expense')}
-                  className="btn btn-danger"
                 >
-                  <TrendingDown size={16} />
-                  <span>+ Add Expense</span>
-                </button>
-                <button
+                  + Add Expense
+                </Button>
+                <Button
+                  variant="outline-danger"
+                  icon={Trash2}
                   onClick={handleDeleteEvent}
-                  className="btn btn-outline-danger"
                   title="Delete Event"
-                >
-                  <Trash2 size={16} />
-                </button>
+                />
               </div>
             </div>
           </div>
@@ -332,12 +312,12 @@ const EventDetails = () => {
                 </p>
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {event.transactions?.length || 0} transaction(s)
+                {transactions.length} transaction(s)
               </div>
             </div>
 
             <TransactionTable
-              transactions={event.transactions}
+              transactions={transactions}
               onDelete={handleDeleteTransaction}
               showEventColumn={false}
             />
@@ -345,124 +325,86 @@ const EventDetails = () => {
         </div>
       </div>
 
-      {/* Add Revenue / Add Expense Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">
-                {modalType === 'revenue' ? '+ Record Revenue' : '+ Record Expense'}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="modal-close"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {/* Add Revenue / Add Expense Modal using reusable Modal component */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={modalType === 'revenue' ? '+ Record Revenue' : '+ Record Expense'}
+        subtitle={`Record a new ${modalType} transaction for ${event.name}`}
+      >
+        <Alert type="danger" message={modalError} onClose={() => setModalError('')} />
 
-            {error && (
-              <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
+        <form onSubmit={handleTxSubmit}>
+          <Select
+            label="Category"
+            name="category"
+            value={txForm.category}
+            onChange={(e) => setTxForm({ ...txForm, category: e.target.value })}
+            placeholder={`Select a ${modalType} category`}
+            options={availableCategories.map((c) => ({
+              value: c._id,
+              label: c.name
+            }))}
+            required
+          />
 
-            <form onSubmit={handleTxSubmit}>
-              <div className="form-group">
-                <label htmlFor="category">Category *</label>
-                <select
-                  id="category"
-                  name="category"
-                  className="form-select"
-                  style={{ width: '100%' }}
-                  value={txForm.category}
-                  onChange={(e) => setTxForm({ ...txForm, category: e.target.value })}
-                  required
-                >
-                  <option value="">Select a {modalType} category</option>
-                  {availableCategories.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <Input
+            label="Description"
+            name="description"
+            placeholder={
+              modalType === 'revenue'
+                ? 'e.g. Gold Sponsorship from Tech Corp'
+                : 'e.g. Venue rental down payment'
+            }
+            value={txForm.description}
+            onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
+            required
+          />
 
-              <div className="form-group">
-                <label htmlFor="description">Description *</label>
-                <input
-                  id="description"
-                  name="description"
-                  type="text"
-                  className="form-input"
-                  style={{ width: '100%' }}
-                  placeholder={
-                    modalType === 'revenue'
-                      ? 'e.g. Gold Sponsorship from Tech Corp'
-                      : 'e.g. Venue rental down payment'
-                  }
-                  value={txForm.description}
-                  onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="amount">Amount (TND) *</label>
-                  <input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className="form-input"
-                    style={{ width: '100%' }}
-                    placeholder="e.g. 1500"
-                    value={txForm.amount}
-                    onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="date">Transaction Date *</label>
-                  <input
-                    id="date"
-                    name="date"
-                    type="date"
-                    className="form-input"
-                    style={{ width: '100%' }}
-                    value={txForm.date}
-                    onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={modalType === 'revenue' ? 'btn btn-success' : 'btn btn-danger'}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Saving...' : `Save ${modalType === 'revenue' ? 'Revenue' : 'Expense'}`}
-                </button>
-              </div>
-            </form>
+          <div className="form-row">
+            <Input
+              label="Amount (TND)"
+              name="amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="e.g. 1500"
+              value={txForm.amount}
+              onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
+              icon={DollarSign}
+              required
+            />
+            <Input
+              label="Transaction Date"
+              name="date"
+              type="date"
+              value={txForm.date}
+              onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
+              icon={Calendar}
+              required
+            />
           </div>
-        </div>
-      )}
+
+          <div className="form-actions">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant={modalType === 'revenue' ? 'success' : 'danger'}
+              loading={isTxSubmitting}
+            >
+              Save {modalType === 'revenue' ? 'Revenue' : 'Expense'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
 
 export default EventDetails;
-

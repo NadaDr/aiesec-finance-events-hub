@@ -1,21 +1,23 @@
 // client/src/pages/Events.jsx
-// Event management page with list of events, search filter, and Add Event modal
+// Event management page with Redux Toolkit slice, search filter, and reusable form components
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import api from '../services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchEvents, createEvent, deleteEvent } from '../redux/eventsSlice';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import EventCard from '../components/EventCard';
-import { Plus, X, Search, CalendarPlus, AlertCircle } from 'lucide-react';
+import { Button, Input, Textarea, Modal, Alert, Spinner } from '../components/common';
+import { Plus, Search, CalendarPlus, MapPin, DollarSign, Calendar, FileText } from 'lucide-react';
 
 const Events = () => {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const dispatch = useDispatch();
+  const { events, loading, isSubmitting, error: reduxError } = useSelector((state) => state.events);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const [searchParams] = useSearchParams();
 
@@ -29,58 +31,46 @@ const Events = () => {
     description: ''
   });
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/events');
-      if (res.data.success) {
-        setEvents(res.data.events);
-      }
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      setError('Failed to load events. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchEvents();
+    dispatch(fetchEvents());
     const querySearch = searchParams.get('search');
     if (querySearch) {
       setSearchTerm(querySearch);
     }
-  }, [searchParams]);
+  }, [dispatch, searchParams]);
 
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (formError) setFormError('');
   };
 
   const handleAddEvent = async (e) => {
     e.preventDefault();
-    setError('');
+    setFormError('');
 
     const { name, location, startDate, endDate, budget } = formData;
     if (!name || !location || !startDate || !endDate) {
-      setError('Please provide event name, location, and valid dates.');
+      setFormError('Please provide event name, location, and valid dates.');
       return;
     }
 
     if (new Date(startDate) > new Date(endDate)) {
-      setError('Event start date cannot be after the end date.');
+      setFormError('Event start date cannot be after the end date.');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      const res = await api.post('/events', {
-        ...formData,
-        budget: Number(budget) || 0
-      });
-      if (res.data.success) {
+      const resultAction = await dispatch(
+        createEvent({
+          ...formData,
+          budget: Number(budget) || 0
+        })
+      );
+
+      if (createEvent.fulfilled.match(resultAction)) {
         setShowAddModal(false);
         setFormData({
           name: '',
@@ -90,12 +80,11 @@ const Events = () => {
           endDate: '',
           description: ''
         });
-        fetchEvents();
+      } else {
+        setFormError(resultAction.payload || 'Failed to create event.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create event.');
-    } finally {
-      setIsSubmitting(false);
+      setFormError('Failed to create event.');
     }
   };
 
@@ -105,20 +94,15 @@ const Events = () => {
     );
     if (!confirmDelete) return;
 
-    try {
-      await api.delete(`/events/${eventId}`);
-      fetchEvents();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete event.');
-    }
+    dispatch(deleteEvent(eventId));
   };
 
   // Filter events based on search term
   const filteredEvents = events.filter((ev) => {
     const term = searchTerm.toLowerCase();
     return (
-      ev.name.toLowerCase().includes(term) ||
-      ev.location.toLowerCase().includes(term) ||
+      ev.name?.toLowerCase().includes(term) ||
+      ev.location?.toLowerCase().includes(term) ||
       (ev.description && ev.description.toLowerCase().includes(term))
     );
   });
@@ -137,16 +121,16 @@ const Events = () => {
                 Manage your AIESEC events, budgets, and financial records
               </p>
             </div>
-            <button
+            <Button
+              variant="primary"
+              icon={Plus}
               onClick={() => {
-                setError('');
+                setFormError('');
                 setShowAddModal(true);
               }}
-              className="btn btn-primary"
             >
-              <Plus size={16} />
-              <span>Add Event</span>
-            </button>
+              Add Event
+            </Button>
           </div>
 
           {/* Search bar inside Events */}
@@ -172,23 +156,23 @@ const Events = () => {
               />
             </div>
             {searchTerm && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setSearchTerm('')}
-                className="btn btn-secondary btn-sm"
               >
                 Clear Search
-              </button>
+              </Button>
             )}
             <div style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               Showing {filteredEvents.length} of {events.length} events
             </div>
           </div>
 
-          {loading ? (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>Loading events...</p>
-            </div>
+          <Alert type="danger" message={reduxError} />
+
+          {loading && events.length === 0 ? (
+            <Spinner text="Loading events from MongoDB..." />
           ) : filteredEvents.length === 0 ? (
             <div className="empty-state">
               <CalendarPlus className="empty-state-icon" />
@@ -201,13 +185,14 @@ const Events = () => {
                   : 'Start by creating your first event like Global Village, Career Fair, or Leadership Conference.'}
               </p>
               {!searchTerm && (
-                <button
+                <Button
+                  variant="primary"
+                  icon={Plus}
                   onClick={() => setShowAddModal(true)}
-                  className="btn btn-primary"
+                  style={{ marginTop: '1rem' }}
                 >
-                  <Plus size={16} />
-                  <span>Create First Event</span>
-                </button>
+                  Create First Event
+                </Button>
               )}
             </div>
           ) : (
@@ -224,142 +209,99 @@ const Events = () => {
         </div>
       </div>
 
-      {/* Add Event Modal */}
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Create New Event</h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="modal-close"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {/* Add Event Modal using reusable Modal component */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Create New Event"
+        subtitle="Define an event with budget allocations and timeline"
+      >
+        <Alert type="danger" message={formError} onClose={() => setFormError('')} />
 
-            {error && (
-              <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
+        <form onSubmit={handleAddEvent}>
+          <Input
+            label="Event Name"
+            name="name"
+            placeholder="e.g. Global Village 2026"
+            value={formData.name}
+            onChange={handleInputChange}
+            required
+          />
 
-            <form onSubmit={handleAddEvent}>
-              <div className="form-group">
-                <label htmlFor="name">Event Name *</label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  className="form-input"
-                  style={{ width: '100%' }}
-                  placeholder="e.g. Global Village 2026"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="location">Location *</label>
-                  <input
-                    id="location"
-                    name="location"
-                    type="text"
-                    className="form-input"
-                    style={{ width: '100%' }}
-                    placeholder="e.g. Sousse, Tunisia"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="budget">Allocated Budget (TND) *</label>
-                  <input
-                    id="budget"
-                    name="budget"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input"
-                    style={{ width: '100%' }}
-                    placeholder="e.g. 5000"
-                    value={formData.budget}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="startDate">Start Date *</label>
-                  <input
-                    id="startDate"
-                    name="startDate"
-                    type="date"
-                    className="form-input"
-                    style={{ width: '100%' }}
-                    value={formData.startDate}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="endDate">End Date *</label>
-                  <input
-                    id="endDate"
-                    name="endDate"
-                    type="date"
-                    className="form-input"
-                    style={{ width: '100%' }}
-                    value={formData.endDate}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="description">Event Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  rows="3"
-                  className="form-input"
-                  style={{ width: '100%', resize: 'vertical' }}
-                  placeholder="Brief summary of event objectives and activities..."
-                  value={formData.description}
-                  onChange={handleInputChange}
-                ></textarea>
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Creating...' : 'Create Event'}
-                </button>
-              </div>
-            </form>
+          <div className="form-row">
+            <Input
+              label="Location"
+              name="location"
+              placeholder="e.g. Sousse, Tunisia"
+              value={formData.location}
+              onChange={handleInputChange}
+              icon={MapPin}
+              required
+            />
+            <Input
+              label="Allocated Budget (TND)"
+              name="budget"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="e.g. 5000"
+              value={formData.budget}
+              onChange={handleInputChange}
+              icon={DollarSign}
+              required
+            />
           </div>
-        </div>
-      )}
+
+          <div className="form-row">
+            <Input
+              label="Start Date"
+              name="startDate"
+              type="date"
+              value={formData.startDate}
+              onChange={handleInputChange}
+              icon={Calendar}
+              required
+            />
+            <Input
+              label="End Date"
+              name="endDate"
+              type="date"
+              value={formData.endDate}
+              onChange={handleInputChange}
+              icon={Calendar}
+              required
+            />
+          </div>
+
+          <Textarea
+            label="Event Description"
+            name="description"
+            rows={3}
+            placeholder="Brief summary of event objectives and activities..."
+            value={formData.description}
+            onChange={handleInputChange}
+          />
+
+          <div className="form-actions">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowAddModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isSubmitting}
+            >
+              Create Event
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
 
 export default Events;
-

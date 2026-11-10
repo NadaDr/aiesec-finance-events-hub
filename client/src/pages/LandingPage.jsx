@@ -1,9 +1,10 @@
 // client/src/pages/LandingPage.jsx
 // Exact landing page matching the AIESEC Finance Hub reference design
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchPublicStats } from '../redux/eventsSlice';
 import Navbar from '../components/Navbar';
 import heroComposition from '../assets/hero-composition.png';
 import {
@@ -15,7 +16,18 @@ import {
 } from 'lucide-react';
 
 const LandingPage = () => {
+  const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const { publicStats } = useSelector((state) => state.events);
+
+  useEffect(() => {
+    dispatch(fetchPublicStats());
+  }, [dispatch]);
+
+  const totalEvents = publicStats?.totalEvents ?? 0;
+  const totalRevenue = publicStats?.totalRevenue ?? 0;
+  const totalExpenses = publicStats?.totalExpenses ?? 0;
+  const netBalance = publicStats?.netBalance ?? 0;
 
   return (
     <div className="landing-wrapper">
@@ -82,28 +94,36 @@ const LandingPage = () => {
         </section>
 
         {/* ============================================================
-            LIVE DEMO STATS STRIP
+            LIVE REAL-TIME STATS STRIP (Direct from MongoDB)
             ============================================================ */}
         <section className="stats-strip-section">
           <div className="stats-strip-container">
             <div className="stat-item">
               <span className="stat-label">Organized Events</span>
-              <strong className="stat-number">3 Events</strong>
+              <strong className="stat-number">
+                {totalEvents} {totalEvents === 1 ? 'Event' : 'Events'}
+              </strong>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item">
               <span className="stat-label">Total Revenues</span>
-              <strong className="stat-number text-revenue">+20,000 TND</strong>
+              <strong className="stat-number text-revenue">
+                +{Number(totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TND
+              </strong>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item">
               <span className="stat-label">Total Expenses</span>
-              <strong className="stat-number text-expense">-14,000 TND</strong>
+              <strong className="stat-number text-expense">
+                -{Number(totalExpenses).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TND
+              </strong>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item">
               <span className="stat-label">Net Surplus</span>
-              <strong className="stat-number text-primary">+6,000 TND</strong>
+              <strong className={`stat-number ${netBalance >= 0 ? 'text-primary' : 'text-expense'}`}>
+                {netBalance >= 0 ? '+' : ''}{Number(netBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TND
+              </strong>
             </div>
           </div>
         </section>

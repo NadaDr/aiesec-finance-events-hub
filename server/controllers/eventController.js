@@ -322,10 +322,53 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+// ------------------------------------------------------------------------------
+// CONTROLLER : getPublicStats
+// ROUTE      : GET /api/events/public/stats
+// ACCES      : Public (blech login)
+// KHEDMETOU  : Yjib les statistiques réelles direct mel base de données lel landing page
+// ------------------------------------------------------------------------------
+const getPublicStats = async (req, res) => {
+  try {
+    const totalEvents = await Event.countDocuments();
+    const transactions = await Transaction.find({});
+
+    let totalRevenue = 0;
+    let totalExpenses = 0;
+
+    transactions.forEach((tx) => {
+      if (tx.type === 'revenue') {
+        totalRevenue += Number(tx.amount);
+      } else if (tx.type === 'expense') {
+        totalExpenses += Number(tx.amount);
+      }
+    });
+
+    const netBalance = totalRevenue - totalExpenses;
+
+    return res.status(200).json({
+      success: true,
+      stats: {
+        totalEvents,
+        totalRevenue,
+        totalExpenses,
+        netBalance
+      }
+    });
+  } catch (error) {
+    console.error('[Event Controller] Ghalta fi getPublicStats:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Moshkla fi tajmi3 el stats el 3amma.'
+    });
+  }
+};
+
 module.exports = {
   getEvents,
   getEventById,
   createEvent,
   deleteEvent,
-  getDashboardStats
+  getDashboardStats,
+  getPublicStats
 };

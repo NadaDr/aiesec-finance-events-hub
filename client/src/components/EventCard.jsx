@@ -1,9 +1,10 @@
 // client/src/components/EventCard.jsx
-// Event card component for event list overview
+// Event card component for event list overview using common Button and Badge components
 
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Calendar, Trash2, ArrowUpRight } from 'lucide-react';
+import { Button, Badge } from './common';
 
 const formatTND = (amount) => {
   const num = Number(amount) || 0;
@@ -37,14 +38,14 @@ const EventCard = ({ event, onDelete }) => {
     financialStatus = 'no_transactions'
   } = event;
 
-  const getStatusBadge = () => {
+  const renderStatusBadge = () => {
     if (financialStatus === 'positive' || netBalance > 0) {
-      return <span className="badge badge-positive">Positive (+{formatTND(netBalance)})</span>;
+      return <Badge variant="positive">Positive (+{formatTND(netBalance)})</Badge>;
     }
     if (financialStatus === 'negative' || netBalance < 0) {
-      return <span className="badge badge-negative">Deficit ({formatTND(netBalance)})</span>;
+      return <Badge variant="negative">Deficit ({formatTND(netBalance)})</Badge>;
     }
-    return <span className="badge badge-neutral">No transactions</span>;
+    return <Badge variant="neutral">No transactions</Badge>;
   };
 
   return (
@@ -52,7 +53,7 @@ const EventCard = ({ event, onDelete }) => {
       <div>
         <div className="event-card-header">
           <h3 className="event-card-title">{name}</h3>
-          {getStatusBadge()}
+          {renderStatusBadge()}
         </div>
 
         <div className="event-card-meta">
@@ -101,22 +102,23 @@ const EventCard = ({ event, onDelete }) => {
       </div>
 
       <div className="event-card-actions">
-        <Link to={`/events/${_id}`} className="btn btn-primary btn-sm">
-          <span>View Details</span>
-          <ArrowUpRight size={14} />
+        <Link to={`/events/${_id}`} style={{ textDecoration: 'none' }}>
+          <Button variant="primary" size="sm" icon={ArrowUpRight} iconPosition="right">
+            View Details
+          </Button>
         </Link>
-        <button
+        <Button
+          variant="outline-danger"
+          size="sm"
+          icon={Trash2}
           onClick={() => onDelete && onDelete(_id, name)}
-          className="btn btn-outline-danger btn-sm"
           title="Delete Event"
         >
-          <Trash2 size={14} />
-          <span>Delete</span>
-        </button>
+          Delete
+        </Button>
       </div>
     </div>
   );
 };
 
 export default EventCard;
-

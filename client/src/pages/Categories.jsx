@@ -1,109 +1,75 @@
 // client/src/pages/Categories.jsx
-// Management page for Revenue and Expense Categories
+// Management page for Revenue and Expense Categories using Redux Toolkit and reusable form components
 
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchCategories,
+  createCategory,
+  deleteCategory,
+  clearCategoryMessages
+} from '../redux/categoriesSlice';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import {
-  Plus,
-  Trash2,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
-  CheckCircle2,
-  Tags
-} from 'lucide-react';
+import { Button, Input, Select, Alert, Spinner, Badge } from '../components/common';
+import { Plus, Trash2, TrendingUp, TrendingDown, Tags } from 'lucide-react';
 
 const Categories = () => {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const dispatch = useDispatch();
+  const { categories, loading, isSubmitting, error, success } = useSelector(
+    (state) => state.categories
+  );
 
   // New Category Form State
   const [formData, setFormData] = useState({
     name: '',
     type: 'revenue'
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/categories');
-      if (res.data.success) {
-        setCategories(res.data.categories);
-      }
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-      setError('Failed to load categories.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [localError, setLocalError] = useState('');
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    dispatch(fetchCategories());
+  }, [dispatch]);
 
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-    if (error) setError('');
-    if (success) setSuccess('');
+    if (localError) setLocalError('');
+    if (error || success) dispatch(clearCategoryMessages());
   };
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setLocalError('');
 
     if (!formData.name.trim()) {
-      setError('Please provide a category name.');
+      setLocalError('Please provide a category name.');
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      const res = await api.post('/categories', {
+    const resultAction = await dispatch(
+      createCategory({
         name: formData.name.trim(),
         type: formData.type
-      });
-      if (res.data.success) {
-        setSuccess(`Category "${formData.name}" added successfully.`);
-        setFormData({ name: '', type: formData.type });
-        fetchCategories();
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add category.');
-    } finally {
-      setIsSubmitting(false);
+      })
+    );
+
+    if (createCategory.fulfilled.match(resultAction)) {
+      setFormData({ name: '', type: formData.type });
     }
   };
 
   const handleDeleteCategory = async (catId, catName) => {
-    setError('');
-    setSuccess('');
+    dispatch(clearCategoryMessages());
 
     const confirmDelete = window.confirm(
       `Are you sure you want to delete category "${catName}"?`
     );
     if (!confirmDelete) return;
 
-    try {
-      const res = await api.delete(`/categories/${catId}`);
-      if (res.data.success) {
-        setSuccess(res.data.message);
-        fetchCategories();
-      }
-    } catch (err) {
-      setError(
-        err.response?.data?.message || 'Cannot delete category in use.'
-      );
-    }
+    dispatch(deleteCategory(catId));
   };
 
   const revenueCategories = categories.filter((c) => c.type === 'revenue');
@@ -125,78 +91,74 @@ const Categories = () => {
             </div>
           </div>
 
-          {error && (
-            <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-          )}
+          <Alert
+            type="danger"
+            message={localError || error}
+            onClose={() => {
+              setLocalError('');
+              dispatch(clearCategoryMessages());
+            }}
+          />
 
-          {success && (
-            <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CheckCircle2 size={16} />
-              <span>{success}</span>
-            </div>
-          )}
+          <Alert
+            type="success"
+            message={success}
+            onClose={() => dispatch(clearCategoryMessages())}
+          />
 
-          {/* Add Category Card */}
+          {/* Add Category Card with Reusable Input, Select, and Button */}
           <div className="card" style={{ marginBottom: '2rem' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--dark-blue)', marginBottom: '1rem' }}>
               + Add New Category
             </h3>
             <form
               onSubmit={handleAddCategory}
-              style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
+              style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}
             >
-              <div style={{ flex: '1', minWidth: '220px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                  Category Name *
-                </label>
-                <input
-                  type="text"
+              <div style={{ flex: '1', minWidth: '240px' }}>
+                <Input
+                  label="Category Name"
                   name="name"
-                  className="form-input"
-                  style={{ width: '100%' }}
                   placeholder="e.g. Merchandise, Sound System, Booth Fees"
                   value={formData.name}
                   onChange={handleInputChange}
+                  icon={Tags}
                   required
+                  style={{ marginBottom: 0 }}
                 />
               </div>
 
               <div style={{ width: '180px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                  Category Type *
-                </label>
-                <select
+                <Select
+                  label="Category Type"
                   name="type"
-                  className="form-select"
-                  style={{ width: '100%' }}
                   value={formData.type}
                   onChange={handleInputChange}
-                >
-                  <option value="revenue">Revenue</option>
-                  <option value="expense">Expense</option>
-                </select>
+                  options={[
+                    { value: 'revenue', label: 'Revenue' },
+                    { value: 'expense', label: 'Expense' }
+                  ]}
+                  required
+                  style={{ marginBottom: 0 }}
+                />
               </div>
 
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSubmitting}
-                style={{ height: '42px' }}
-              >
-                <Plus size={16} />
-                <span>{isSubmitting ? 'Adding...' : 'Add Category'}</span>
-              </button>
+              <div style={{ alignSelf: 'flex-end' }}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={isSubmitting}
+                  icon={Plus}
+                  style={{ height: '42px' }}
+                >
+                  Add Category
+                </Button>
+              </div>
             </form>
           </div>
 
-          {loading ? (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>Loading categories...</p>
-            </div>
+          {loading && categories.length === 0 ? (
+            <Spinner text="Loading categories from MongoDB..." />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem' }}>
               {/* Revenue Categories Card */}
@@ -232,17 +194,17 @@ const Categories = () => {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <span className="badge badge-revenue">Revenue</span>
+                        <Badge variant="revenue">Revenue</Badge>
                         <span style={{ fontWeight: 600 }}>{cat.name}</span>
                       </div>
-                      <button
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        icon={Trash2}
                         onClick={() => handleDeleteCategory(cat._id, cat.name)}
-                        className="btn btn-outline-danger btn-sm"
                         title="Delete category"
                         style={{ padding: '0.25rem 0.5rem' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      />
                     </div>
                   ))}
                 </div>
@@ -281,17 +243,17 @@ const Categories = () => {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <span className="badge badge-expense">Expense</span>
+                        <Badge variant="expense">Expense</Badge>
                         <span style={{ fontWeight: 600 }}>{cat.name}</span>
                       </div>
-                      <button
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        icon={Trash2}
                         onClick={() => handleDeleteCategory(cat._id, cat.name)}
-                        className="btn btn-outline-danger btn-sm"
                         title="Delete category"
                         style={{ padding: '0.25rem 0.5rem' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      />
                     </div>
                   ))}
                 </div>
@@ -305,4 +267,3 @@ const Categories = () => {
 };
 
 export default Categories;
-

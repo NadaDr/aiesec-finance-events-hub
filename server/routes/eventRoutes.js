@@ -8,9 +8,13 @@ const {
   getEventById,
   createEvent,
   deleteEvent,
-  getDashboardStats
+  getDashboardStats,
+  getPublicStats
 } = require('../controllers/eventController');
 const { protect } = require('../middleware/authMiddleware');
+
+// Public live statistics for landing page (no auth required)
+router.get('/public/stats', getPublicStats);
 
 // Dashboard statistics route (must be before :id to prevent matching 'dashboard' as an ID)
 router.get('/dashboard/stats', protect, getDashboardStats);

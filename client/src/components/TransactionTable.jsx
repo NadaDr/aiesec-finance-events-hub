@@ -1,8 +1,9 @@
 // client/src/components/TransactionTable.jsx
-// Reusable table for displaying financial transactions
+// Reusable table for displaying financial transactions using common Button and Badge components
 
 import React from 'react';
-import { Trash2, ArrowUpRight, ArrowDownRight, Receipt } from 'lucide-react';
+import { Trash2, Receipt } from 'lucide-react';
+import { Button, Badge } from './common';
 
 const formatTND = (amount) => {
   const num = Number(amount) || 0;
@@ -59,10 +60,9 @@ const TransactionTable = ({
             return (
               <tr key={tx._id}>
                 <td>
-                  <span className={`badge ${isRevenue ? 'badge-revenue' : 'badge-expense'}`}>
-                    {isRevenue ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                  <Badge variant={isRevenue ? 'revenue' : 'expense'}>
                     {tx.type}
-                  </span>
+                  </Badge>
                 </td>
                 <td style={{ fontWeight: 500 }}>{tx.description}</td>
                 {showEventColumn && (
@@ -85,14 +85,14 @@ const TransactionTable = ({
                 </td>
                 {onDelete && (
                   <td style={{ textAlign: 'right' }}>
-                    <button
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      icon={Trash2}
                       onClick={() => onDelete(tx._id, tx.description)}
-                      className="btn btn-outline-danger btn-sm"
                       title="Delete Transaction"
                       style={{ padding: '0.25rem 0.5rem' }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    />
                   </td>
                 )}
               </tr>
@@ -105,4 +105,3 @@ const TransactionTable = ({
 };
 
 export default TransactionTable;
-
