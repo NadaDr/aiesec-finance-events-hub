@@ -1,6 +1,6 @@
 // client/src/pages/EventDetails.jsx
 // ======================================================================================
-// 📌 EVENT DETAILS PAGE (Belfala9i Tounsi)
+// 📌 EVENT DETAILS PAGE 
 // ======================================================================================
 // Hathi el-Page mte3 les détails mte3 un évènement spécifique (Revenues, Expenses, Net Balance, Transactions):
 // 1) useParams: njibou el `id` mte3 l'évènement mel URL (/events/:id).

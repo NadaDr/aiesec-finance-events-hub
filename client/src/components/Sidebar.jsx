@@ -1,10 +1,6 @@
 // client/src/components/Sidebar.jsx
 // ======================================================================================
-// 📌 SIDEBAR COMPONENT (Belfala9i Tounsi)
-// ======================================================================================
-// Hatha el-Sidebar el-thabet (Fixed Sidebar) 3al issar fel application lkol.
 // Fih el-Navigation menu mte3na: Dashboard, Events, Transactions, w Categories.
-// W fih zeda el-Footer el-ta7tani el-lasseq fel 9a3 mte3 l'ecran (pinned at bottom):
 // fih esm el-user w bouton Logout bech yokhrej w yfasakh el-session.
 // ======================================================================================
 

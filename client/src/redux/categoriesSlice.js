@@ -87,7 +87,7 @@ export const deleteCategory = createAsyncThunk(
 );
 
 // ------------------------------------------------------------------------------
-// INITIAL STATE : El 7ala el ibtide'iya mta3 les catégories fel Redux
+// INITIAL STATE : El 7ala el initiale mta3 les catégories fel Redux
 // ------------------------------------------------------------------------------
 const initialState = {
   categories: [],      // Tableau fih les catégories l-kol ({ _id, name, type })

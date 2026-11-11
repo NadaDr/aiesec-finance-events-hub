@@ -1,7 +1,5 @@
 // client/src/components/Navbar.jsx
 // ======================================================================================
-// 📌 NAVBAR COMPONENT (Belfala9i Tounsi)
-// ======================================================================================
 // Hatha el-Navbar el-faw9ani (Header) el-thabet mte3 l'application:
 // 1) 3al issar: Logo officiel mte3 AIESEC en bleu.
 // 2) 3al ymin: L'Avatar mte3 el-User (awwel 7arf men esmou) fih Dropdown menu lel Profile w Logout.
