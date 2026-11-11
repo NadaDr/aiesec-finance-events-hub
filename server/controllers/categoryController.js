@@ -24,7 +24,7 @@ const DEFAULT_CATEGORIES = [
 // @desc    Get all categories (auto-seed if empty)
 // @route   GET /api/categories
 // @access  Public / Protected
-const getCategories = async (req, res) => {
+const getCategories = async (req, res, next) => {
   try {
     let categories = await Category.find().sort({ type: 1, name: 1 });
 
@@ -41,18 +41,14 @@ const getCategories = async (req, res) => {
       categories
     });
   } catch (error) {
-    console.error('[Category Controller] getCategories error:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve categories.'
-    });
+    next(error);
   }
 };
 
 // @desc    Create a new category
 // @route   POST /api/categories
 // @access  Private
-const createCategory = async (req, res) => {
+const createCategory = async (req, res, next) => {
   try {
     const { name, type } = req.body;
 
@@ -97,18 +93,14 @@ const createCategory = async (req, res) => {
       category
     });
   } catch (error) {
-    console.error('[Category Controller] createCategory error:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create category.'
-    });
+    next(error);
   }
 };
 
 // @desc    Delete a category
 // @route   DELETE /api/categories/:id
 // @access  Private
-const deleteCategory = async (req, res) => {
+const deleteCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -136,11 +128,7 @@ const deleteCategory = async (req, res) => {
       message: `Category "${category.name}" was successfully deleted.`
     });
   } catch (error) {
-    console.error('[Category Controller] deleteCategory error:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to delete category.'
-    });
+    next(error);
   }
 };
 

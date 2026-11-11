@@ -3,7 +3,7 @@
 
 import React from 'react';
 
-const Spinner = ({ size = 'md', text = 'Loading data from MongoDB...', className = '' }) => {
+const Spinner = ({ size = 'md', text = 'Loading…', className = '' }) => {
   const getDimensions = () => {
     switch (size) {
       case 'sm':

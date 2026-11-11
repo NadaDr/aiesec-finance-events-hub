@@ -3,6 +3,7 @@
 // CHNOWA  : El Khidma mta3 les événements (Calculs flous, Ajout, Faskh, Dashboard)
 // ==============================================================================
 
+const mongoose = require('mongoose');
 const Event = require('../models/Event');
 const Transaction = require('../models/Transaction');
 
@@ -11,38 +12,58 @@ const Transaction = require('../models/Transaction');
 // KHEDMETHA: Ta7seb en direct kol madkhoul w masrouf mta3 Event mo3ayan
 //            Revenues - Expenses = Net Balance (Raba7 wala Khaser)
 // ------------------------------------------------------------------------------
-const calculateEventFinancials = async (eventId) => {
-  // 1. Njibou kol el transactions eli marboutin b-hadha l'Event
-  const transactions = await Transaction.find({ event: eventId });
-
-  let totalRevenue = 0;
-  let totalExpenses = 0;
-
-  // 2. Ndourou 3lihom bel ka3ba: ken revenue nzidou fel madkhoul, ken expense fel masrouf
-  transactions.forEach((tx) => {
-    if (tx.type === 'revenue') {
-      totalRevenue += Number(tx.amount);
-    } else if (tx.type === 'expense') {
-      totalExpenses += Number(tx.amount);
-    }
-  });
-
-  // 3. El Bilan Net : Madkhoul na9es Masrouf
-  const netBalance = totalRevenue - totalExpenses;
-
-  // 4. Statut : Raba7 (positive) wala déficitaire (negative)
-  let financialStatus = 'no_transactions';
-  if (transactions.length > 0) {
-    financialStatus = netBalance >= 0 ? 'positive' : 'negative';
-  }
-
+// Ybni l'objet financier men totaux (revenue, expense, count)
+const buildFinancials = ({ revenue = 0, expense = 0, count = 0 } = {}) => {
+  const netBalance = revenue - expense;
   return {
-    totalRevenue,
-    totalExpenses,
+    totalRevenue: revenue,
+    totalExpenses: expense,
     netBalance,
-    transactionCount: transactions.length,
-    financialStatus
+    transactionCount: count,
+    financialStatus: count === 0 ? 'no_transactions' : netBalance >= 0 ? 'positive' : 'negative'
   };
+};
+
+// ------------------------------------------------------------------------------
+// FONCTION : getFinancialsByEvent
+// KHEDMETHA: Ta7seb el flous mta3 BARCHA events fi requête wa7da ($group)
+//            fi 3oudh requête l-kol event (N+1). Trajja3 Map : eventId -> financials
+// ------------------------------------------------------------------------------
+const getFinancialsByEvent = async (eventIds) => {
+  const rows = await Transaction.aggregate([
+    // aggregate() ma ycastich wa7dou : nbadlou les strings l-ObjectId
+    { $match: { event: { $in: eventIds.map((id) => new mongoose.Types.ObjectId(String(id))) } } },
+    {
+      $group: {
+        _id: '$event',
+        revenue: { $sum: { $cond: [{ $eq: ['$type', 'revenue'] }, '$amount', 0] } },
+        expense: { $sum: { $cond: [{ $eq: ['$type', 'expense'] }, '$amount', 0] } },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const byEvent = new Map(rows.map((r) => [String(r._id), buildFinancials(r)]));
+  return (eventId) => byEvent.get(String(eventId)) || buildFinancials();
+};
+
+// Ta7seb el flous mta3 event wa7ed
+const calculateEventFinancials = async (eventId) => {
+  const lookup = await getFinancialsByEvent([eventId]);
+  return lookup(eventId);
+};
+
+// Totaux globaux (revenue / expense) 7asb filtre
+const sumByType = async (match = {}) => {
+  const rows = await Transaction.aggregate([
+    { $match: match },
+    { $group: { _id: '$type', total: { $sum: '$amount' } } }
+  ]);
+  const totals = { revenue: 0, expense: 0 };
+  rows.forEach((r) => {
+    totals[r._id] = r.total;
+  });
+  return totals;
 };
 
 // ------------------------------------------------------------------------------
@@ -50,23 +71,19 @@ const calculateEventFinancials = async (eventId) => {
 // ROUTE      : GET /api/events
 // KHEDMETOU  : Yjib les events mta3 el user mconnecti m3ahom calculat el flous
 // ------------------------------------------------------------------------------
-const getEvents = async (req, res) => {
+const getEvents = async (req, res, next) => {
   try {
     // 1. Nlawjou 3al events eli 3malhom el user mconnecti (triés mel jdid lel 9dim)
     const events = await Event.find({ createdBy: req.user._id })
       .populate('createdBy', 'name email')
       .sort({ startDate: -1 });
 
-    // 2. Kol event n7esboulou floussou en direct (Revenues, Expenses, Balance)
-    const eventsWithFinancials = await Promise.all(
-      events.map(async (event) => {
-        const financials = await calculateEventFinancials(event._id);
-        return {
-          ...event.toObject(),
-          ...financials
-        };
-      })
-    );
+    // 2. Calculat el flous l-kol events fi requête wa7da
+    const financialsOf = await getFinancialsByEvent(events.map((e) => e._id));
+    const eventsWithFinancials = events.map((event) => ({
+      ...event.toObject(),
+      ...financialsOf(event._id)
+    }));
 
     // 3. Nraj3ou el liste kemla lil frontend
     return res.status(200).json({
@@ -75,11 +92,7 @@ const getEvents = async (req, res) => {
       events: eventsWithFinancials
     });
   } catch (error) {
-    console.error('[Event Controller] Ghalta fi getEvents:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Ma najamnech njibou les événements.'
-    });
+    next(error);
   }
 };
 
@@ -88,7 +101,7 @@ const getEvents = async (req, res) => {
 // ROUTE      : GET /api/events/:id
 // KHEDMETOU  : Yjib event wa7ed b-tafasilou l-kol w historique les transactions mte3ou
 // ------------------------------------------------------------------------------
-const getEventById = async (req, res) => {
+const getEventById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -123,11 +136,7 @@ const getEventById = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Event Controller] Ghalta fi getEventById:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Moshkla fi chargement l-event.'
-    });
+    next(error);
   }
 };
 
@@ -136,7 +145,7 @@ const getEventById = async (req, res) => {
 // ROUTE      : POST /api/events
 // KHEDMETOU  : Ysajjel événement jdid fil base MongoDB
 // ------------------------------------------------------------------------------
-const createEvent = async (req, res) => {
+const createEvent = async (req, res, next) => {
   try {
     const { name, description, location, startDate, endDate, budget } = req.body;
 
@@ -185,11 +194,7 @@ const createEvent = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Event Controller] Ghalta fi createEvent:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Moshkla fi sna3an l-event.'
-    });
+    next(error);
   }
 };
 
@@ -198,7 +203,7 @@ const createEvent = async (req, res) => {
 // ROUTE      : DELETE /api/events/:id
 // KHEDMETOU  : Yfasa5 l'événement w en même temps YFASA5 KOL EL TRANSACTIONS mte3ou
 // ------------------------------------------------------------------------------
-const deleteEvent = async (req, res) => {
+const deleteEvent = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -227,11 +232,7 @@ const deleteEvent = async (req, res) => {
       message: `L'event "${event.name}" tfasa5 m3a ${deletedTransactionsResult.deletedCount} transaction(s) teb3inou.`
     });
   } catch (error) {
-    console.error('[Event Controller] Ghalta fi deleteEvent:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Moshkla fi faskhan l-event.'
-    });
+    next(error);
   }
 };
 
@@ -240,7 +241,7 @@ const deleteEvent = async (req, res) => {
 // ROUTE      : GET /api/events/dashboard/stats
 // KHEDMETOU  : Y7adher les chiffres mta3 el Dashboard wel donnee mta3 graphe Recharts
 // ------------------------------------------------------------------------------
-const getDashboardStats = async (req, res) => {
+const getDashboardStats = async (req, res, next) => {
   try {
     // 1. Njibou les events l-kol mta3 el user
     const events = await Event.find({ createdBy: req.user._id }).sort({
@@ -248,46 +249,56 @@ const getDashboardStats = async (req, res) => {
     });
 
     // 2. Njibou les transactions l-kol mta3 el user
-    const transactions = await Transaction.find({ createdBy: req.user._id })
+    //    (ken e5er 6 bark : el totaux yet7asbou b-aggregation, mouch fel mémoire)
+    const recentTransactions = await Transaction.find({ createdBy: req.user._id })
       .populate('event', 'name')
       .populate('category', 'name type')
-      .sort({ date: -1 });
+      .sort({ date: -1 })
+      .limit(6);
 
     // 3. N7esbou el totaux l-kol mta3 l'organisation (Global KPIs)
-    let totalRevenue = 0;
-    let totalExpenses = 0;
-
-    transactions.forEach((tx) => {
-      if (tx.type === 'revenue') {
-        totalRevenue += Number(tx.amount);
-      } else if (tx.type === 'expense') {
-        totalExpenses += Number(tx.amount);
-      }
-    });
-
+    const totals = await sumByType({ createdBy: req.user._id });
+    const totalRevenue = totals.revenue;
+    const totalExpenses = totals.expense;
     const netBalance = totalRevenue - totalExpenses;
     const totalEvents = events.length;
 
-    // 4. Synthèse par event bech n7otouhom fel tableau mta3 el Dashboard
-    const eventsOverview = await Promise.all(
-      events.map(async (event) => {
-        const financials = await calculateEventFinancials(event._id);
-        return {
-          _id: event._id,
-          name: event.name,
-          location: event.location,
-          startDate: event.startDate,
-          endDate: event.endDate,
-          budget: event.budget,
-          totalRevenue: financials.totalRevenue,
-          totalExpenses: financials.totalExpenses,
-          netBalance: financials.netBalance,
-          financialStatus: financials.financialStatus
-        };
-      })
-    );
+    // 3b. Tendance : had el chhar vs el chhar eli fet (7asb date mta3 el transaction)
+    const now = new Date();
+    const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const [thisMonth, lastMonth] = await Promise.all([
+      sumByType({ createdBy: req.user._id, date: { $gte: startThisMonth } }),
+      sumByType({ createdBy: req.user._id, date: { $gte: startLastMonth, $lt: startThisMonth } })
+    ]);
+    const trends = {
+      revenue: { current: thisMonth.revenue, previous: lastMonth.revenue },
+      expense: { current: thisMonth.expense, previous: lastMonth.expense },
+      net: {
+        current: thisMonth.revenue - thisMonth.expense,
+        previous: lastMonth.revenue - lastMonth.expense
+      }
+    };
 
-    // 5. Nformatiw les données lel composant Recharts (BarChart)
+    // 4. Synthèse par event (requête wa7da l-kol events)
+    const financialsOf = await getFinancialsByEvent(events.map((e) => e._id));
+    const eventsOverview = events.map((event) => {
+      const financials = financialsOf(event._id);
+      return {
+        _id: event._id,
+        name: event.name,
+        location: event.location,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        budget: event.budget,
+        totalRevenue: financials.totalRevenue,
+        totalExpenses: financials.totalExpenses,
+        netBalance: financials.netBalance,
+        financialStatus: financials.financialStatus
+      };
+    });
+
+    // 5. Nformatiw les données lel graphe Chart.js (Bar)
     // Structure: [ { name: "Global Village", Revenue: 6000, Expenses: 2000 }, ... ]
     const chartData = eventsOverview.map((item) => ({
       name: item.name.length > 18 ? item.name.substring(0, 16) + '...' : item.name,
@@ -296,9 +307,6 @@ const getDashboardStats = async (req, res) => {
       Expenses: item.totalExpenses,
       NetBalance: item.netBalance
     }));
-
-    // 6. Nkhalliw ken e5er 6 transactions jdod
-    const recentTransactions = transactions.slice(0, 6);
 
     // 7. Nraj3ou kol chay lel React Dashboard
     return res.status(200).json({
@@ -309,16 +317,13 @@ const getDashboardStats = async (req, res) => {
         netBalance,
         totalEvents
       },
+      trends,
       chartData,
       eventsOverview,
       recentTransactions
     });
   } catch (error) {
-    console.error('[Event Controller] Ghalta fi getDashboardStats:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Moshkla fi calculat el Dashboard.'
-    });
+    next(error);
   }
 };
 
@@ -328,22 +333,11 @@ const getDashboardStats = async (req, res) => {
 // ACCES      : Public (blech login)
 // KHEDMETOU  : Yjib les statistiques réelles direct mel base de données lel landing page
 // ------------------------------------------------------------------------------
-const getPublicStats = async (req, res) => {
+const getPublicStats = async (req, res, next) => {
   try {
-    const totalEvents = await Event.countDocuments();
-    const transactions = await Transaction.find({});
-
-    let totalRevenue = 0;
-    let totalExpenses = 0;
-
-    transactions.forEach((tx) => {
-      if (tx.type === 'revenue') {
-        totalRevenue += Number(tx.amount);
-      } else if (tx.type === 'expense') {
-        totalExpenses += Number(tx.amount);
-      }
-    });
-
+    const [totalEvents, totals] = await Promise.all([Event.countDocuments(), sumByType()]);
+    const totalRevenue = totals.revenue;
+    const totalExpenses = totals.expense;
     const netBalance = totalRevenue - totalExpenses;
 
     return res.status(200).json({
@@ -356,11 +350,7 @@ const getPublicStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Event Controller] Ghalta fi getPublicStats:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Moshkla fi tajmi3 el stats el 3amma.'
-    });
+    next(error);
   }
 };
 

@@ -9,10 +9,10 @@
 // 4) navigate('/dashboard'): wa9t el login yenja7, nhezzou l-user directement lel Dashboard.
 // ======================================================================================
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../redux/authSlice';
+import { loginUser, clearError, clearSessionMessage } from '../redux/authSlice';
 import Navbar from '../components/Navbar';
 import { Button, Input, Alert } from '../components/common';
 import aiesecLogo from '../assets/AIESEClogo.png';
@@ -29,8 +29,21 @@ const Login = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  // useSelector: njibou loading w error mel authSlice
-  const { loading: isSubmitting, error: reduxError } = useSelector((state) => state.auth);
+  const location = useLocation();
+  // El page eli 7ab ya3melha 9bal ma ProtectedRoute yhezzou lel /login
+  const from = location.state?.from?.pathname || '/dashboard';
+  // useSelector: njibou loading, error w sessionMessage mel authSlice
+  const {
+    loading: isSubmitting,
+    error: reduxError,
+    sessionMessage,
+    isAuthenticated
+  } = useSelector((state) => state.auth);
+
+  // Nna7iw erreur 9dima (mathalan men page Register) wa9t nod5lou
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleChange = (e) => {
     setFormData({
@@ -52,7 +65,7 @@ const Login = () => {
     try {
       const resultAction = await dispatch(loginUser(formData));
       if (loginUser.fulfilled.match(resultAction)) {
-        navigate('/dashboard');
+        navigate(from, { replace: true });
       }
     } catch (err) {
       setLocalError('Invalid email or password.');
@@ -60,6 +73,11 @@ const Login = () => {
   };
 
   const displayError = localError || reduxError;
+
+  // Deja connecté : ma fammech 3lech naffichiw el formulaire
+  if (isAuthenticated && !isSubmitting) {
+    return <Navigate to={from} replace />;
+  }
 
   return (
     <div className="app-container">
@@ -77,6 +95,14 @@ const Login = () => {
           <p className="auth-subtitle">
             Sign in to manage your AIESEC event finances
           </p>
+
+          {sessionMessage && !displayError && (
+            <Alert
+              type="warning"
+              message={sessionMessage}
+              onClose={() => dispatch(clearSessionMessage())}
+            />
+          )}
 
           <Alert type="danger" message={displayError} onClose={() => setLocalError('')} />
 
@@ -129,7 +155,7 @@ const Login = () => {
             Don't have an account?{' '}
             <Link
               to="/register"
-              style={{ color: 'var(--primary-blue)', fontWeight: 600 }}
+              style={{ color: 'var(--brand-primary)', fontWeight: 600 }}
             >
               Register
             </Link>

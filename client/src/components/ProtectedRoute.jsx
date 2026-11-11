@@ -1,28 +1,21 @@
 // client/src/components/ProtectedRoute.jsx
-// Protects routes that require authentication using Redux Toolkit state
+// Garde de route (layout route) : ken ma famma 7atta session -> /login,
+// w nfakkrou el page eli kan 7ab ya3melha bech nraj3ouh liha ba3d el connexion.
+// Ki session tofa (401), l'intercepteur Axios yfasa5ha w hadha yhezzou lel /login wa7dou.
 
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useSelector((state) => state.auth);
+const ProtectedRoute = () => {
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const location = useLocation();
-
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading your financial dashboard...</p>
-      </div>
-    );
-  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return children;
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

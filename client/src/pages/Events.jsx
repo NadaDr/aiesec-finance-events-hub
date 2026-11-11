@@ -5,16 +5,25 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchEvents, createEvent, deleteEvent } from '../redux/eventsSlice';
-import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar';
 import EventCard from '../components/EventCard';
-import { Button, Input, Textarea, Modal, Alert, Spinner } from '../components/common';
+import {
+  Button,
+  Input,
+  Textarea,
+  Modal,
+  Alert,
+  Spinner,
+  useToast,
+  useConfirm
+} from '../components/common';
 import { Plus, Search, CalendarPlus, MapPin, DollarSign, Calendar, FileText } from 'lucide-react';
 
 const Events = () => {
   // 1. REDUX HOOKS :
   // dispatch : bech neb3thou biha les actions lel Redux store (ex: fetchEvents, createEvent, deleteEvent)
   const dispatch = useDispatch();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   // useSelector : njibou les données li 7achtna behom mel eventsSlice :
   // - events: liste des événements li jéyetna mel MongoDB
@@ -97,6 +106,7 @@ const Events = () => {
 
       if (createEvent.fulfilled.match(resultAction)) {
         setShowAddModal(false); // Nsakrou el modal
+        toast.success(`Event "${resultAction.payload.name}" created.`);
         setFormData({           // Nfarghou el formulaire
           name: '',
           location: '',
@@ -116,12 +126,18 @@ const Events = () => {
   // handleDeleteEvent: wa9telli tenzel 3la botona "Delete" fi carte événement
   // Yab3ath dispatch(deleteEvent(id)) li yfasa5 l'événement m3a ses transactions (Cascade Delete)
   const handleDeleteEvent = async (eventId, eventName) => {
-    const confirmDelete = window.confirm(
-      `Met'akked t7eb tfasa5 "${eventName}" ? Kol les transactions mte3ou bech yetfas5ou m3ah.`
-    );
-    if (!confirmDelete) return;
+    const ok = await confirm({
+      title: 'Delete event',
+      message: `Delete "${eventName}"? All of its transactions will be deleted too.`
+    });
+    if (!ok) return;
 
-    dispatch(deleteEvent(eventId));
+    try {
+      await dispatch(deleteEvent(eventId)).unwrap();
+      toast.success(`"${eventName}" deleted.`);
+    } catch (message) {
+      toast.error(message);
+    }
   };
 
   // Filter events based on search term
@@ -135,199 +151,194 @@ const Events = () => {
   });
 
   return (
-    <div className="auth-layout">
-      <Sidebar />
-      <div className="main-content">
-        <Navbar onSearchChange={setSearchTerm} searchTerm={searchTerm} />
-
-        <div className="page-content">
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Events</h1>
-              <p className="page-subtitle">
-                Manage your AIESEC events, budgets, and financial records
-              </p>
-            </div>
-            <Button
-              variant="primary"
-              icon={Plus}
-              onClick={() => {
-                setFormError('');
-                setShowAddModal(true);
-              }}
-            >
-              Add Event
-            </Button>
+    <>
+      <div className="page-content">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Events</h1>
+            <p className="page-subtitle">
+              Every event, its budget, and how it is doing
+            </p>
           </div>
+          <Button
+            variant="primary"
+            icon={Plus}
+            onClick={() => {
+              setFormError('');
+              setShowAddModal(true);
+            }}
+          >
+            New event
+          </Button>
+        </div>
 
-          {/* Search bar inside Events */}
-          <div className="filters-bar">
-            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-              <input
-                type="text"
-                placeholder="Filter events by name or location..."
-                className="form-input"
-                style={{ width: '100%', paddingLeft: '2.4rem' }}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search
-                size={16}
-                style={{
-                  position: 'absolute',
-                  left: '0.85rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-secondary)'
-                }}
-              />
-            </div>
-            {searchTerm && (
+        {/* Search bar inside Events */}
+        <div className="filters-bar">
+          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+            <input
+              type="text"
+              placeholder="Filter events by name or location..."
+              className="form-input"
+              style={{ width: '100%', paddingLeft: '2.4rem' }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search
+              size={16}
+              style={{
+                position: 'absolute',
+                left: '0.85rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-secondary)'
+              }}
+            />
+          </div>
+          {searchTerm && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSearchTerm('')}
+            >
+              Clear search
+            </Button>
+          )}
+          <div style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            Showing {filteredEvents.length} of {events.length} events
+          </div>
+        </div>
+
+        <Alert type="danger" message={reduxError} />
+
+        {loading && events.length === 0 ? (
+          <Spinner text="Loading your events…" />
+        ) : filteredEvents.length === 0 ? (
+          <div className="empty-state">
+            <CalendarPlus className="empty-state-icon" />
+            <h3 className="empty-state-title">
+              {searchTerm ? 'No events match your search' : 'No events yet'}
+            </h3>
+            <p className="empty-state-subtitle">
+              {searchTerm
+                ? 'Try a different name or place, or clear the search.'
+                : 'Create your first event — Global Village, a Career Fair, YouthSpeak — and track its budget from day one.'}
+            </p>
+            {!searchTerm && (
               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSearchTerm('')}
+                variant="primary"
+                icon={Plus}
+                onClick={() => setShowAddModal(true)}
+                style={{ marginTop: '1rem' }}
               >
-                Clear Search
+                Create your first event
               </Button>
             )}
-            <div style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Showing {filteredEvents.length} of {events.length} events
-            </div>
           </div>
-
-          <Alert type="danger" message={reduxError} />
-
-          {loading && events.length === 0 ? (
-            <Spinner text="Loading events from MongoDB..." />
-          ) : filteredEvents.length === 0 ? (
-            <div className="empty-state">
-              <CalendarPlus className="empty-state-icon" />
-              <h3 className="empty-state-title">
-                {searchTerm ? 'No matching events found' : 'No events created yet'}
-              </h3>
-              <p className="empty-state-subtitle">
-                {searchTerm
-                  ? 'Try searching with different keywords or clear your filter.'
-                  : 'Start by creating your first event like Global Village, Career Fair, or Leadership Conference.'}
-              </p>
-              {!searchTerm && (
-                <Button
-                  variant="primary"
-                  icon={Plus}
-                  onClick={() => setShowAddModal(true)}
-                  style={{ marginTop: '1rem' }}
-                >
-                  Create First Event
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="events-grid">
-              {filteredEvents.map((ev) => (
-                <EventCard
-                  key={ev._id}
-                  event={ev}
-                  onDelete={handleDeleteEvent}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="events-grid">
+            {filteredEvents.map((ev) => (
+              <EventCard
+                key={ev._id}
+                event={ev}
+                onDelete={handleDeleteEvent}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Add Event Modal using reusable Modal component */}
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Create New Event"
-        subtitle="Define an event with budget allocations and timeline"
-      >
-        <Alert type="danger" message={formError} onClose={() => setFormError('')} />
+    {/* Add Event Modal using reusable Modal component */}
+    <Modal
+      isOpen={showAddModal}
+      onClose={() => setShowAddModal(false)}
+      title="New event"
+      subtitle="Set the dates, place and budget. You can record money in and out afterwards."
+    >
+      <Alert type="danger" message={formError} onClose={() => setFormError('')} />
 
-        <form onSubmit={handleAddEvent}>
+      <form onSubmit={handleAddEvent}>
+        <Input
+          label="Event Name"
+          name="name"
+          placeholder="e.g. Global Village 2026"
+          value={formData.name}
+          onChange={handleInputChange}
+          required
+        />
+
+        <div className="form-row">
           <Input
-            label="Event Name"
-            name="name"
-            placeholder="e.g. Global Village 2026"
-            value={formData.name}
+            label="Location"
+            name="location"
+            placeholder="e.g. Sousse, Tunisia"
+            value={formData.location}
             onChange={handleInputChange}
+            icon={MapPin}
             required
           />
-
-          <div className="form-row">
-            <Input
-              label="Location"
-              name="location"
-              placeholder="e.g. Sousse, Tunisia"
-              value={formData.location}
-              onChange={handleInputChange}
-              icon={MapPin}
-              required
-            />
-            <Input
-              label="Allocated Budget (TND)"
-              name="budget"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="e.g. 5000"
-              value={formData.budget}
-              onChange={handleInputChange}
-              icon={DollarSign}
-              required
-            />
-          </div>
-
-          <div className="form-row">
-            <Input
-              label="Start Date"
-              name="startDate"
-              type="date"
-              value={formData.startDate}
-              onChange={handleInputChange}
-              icon={Calendar}
-              required
-            />
-            <Input
-              label="End Date"
-              name="endDate"
-              type="date"
-              value={formData.endDate}
-              onChange={handleInputChange}
-              icon={Calendar}
-              required
-            />
-          </div>
-
-          <Textarea
-            label="Event Description"
-            name="description"
-            rows={3}
-            placeholder="Brief summary of event objectives and activities..."
-            value={formData.description}
+          <Input
+            label="Allocated Budget (TND)"
+            name="budget"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="e.g. 5000"
+            value={formData.budget}
             onChange={handleInputChange}
+            icon={DollarSign}
+            required
           />
+        </div>
 
-          <div className="form-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowAddModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={isSubmitting}
-            >
-              Create Event
-            </Button>
-          </div>
-        </form>
-      </Modal>
-    </div>
+        <div className="form-row">
+          <Input
+            label="Start Date"
+            name="startDate"
+            type="date"
+            value={formData.startDate}
+            onChange={handleInputChange}
+            icon={Calendar}
+            required
+          />
+          <Input
+            label="End Date"
+            name="endDate"
+            type="date"
+            value={formData.endDate}
+            onChange={handleInputChange}
+            icon={Calendar}
+            required
+          />
+        </div>
+
+        <Textarea
+          label="Event Description"
+          name="description"
+          rows={3}
+          placeholder="Brief summary of event objectives and activities..."
+          value={formData.description}
+          onChange={handleInputChange}
+        />
+
+        <div className="form-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setShowAddModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            loading={isSubmitting}
+          >
+            Create event
+          </Button>
+        </div>
+      </form>
+    </Modal>
+    </>
   );
 };
 

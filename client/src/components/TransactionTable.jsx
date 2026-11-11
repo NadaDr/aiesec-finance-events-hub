@@ -1,41 +1,24 @@
 // client/src/components/TransactionTable.jsx
-// Reusable table for displaying financial transactions using common Button and Badge components
+// Tableau des transactions : montants signés w alignés à droite, chiffres tabulaires.
 
 import React from 'react';
 import { Trash2, Receipt } from 'lucide-react';
 import { Button, Badge } from './common';
-
-const formatTND = (amount) => {
-  const num = Number(amount) || 0;
-  return num.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }) + ' TND';
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
-};
+import { formatSignedTND, formatDate } from '../utils/format';
 
 const TransactionTable = ({
   transactions = [],
   onDelete,
-  showEventColumn = true
+  showEventColumn = true,
+  emptyTitle = 'No transactions yet',
+  emptyText = 'Record your first sponsorship or expense and it will show up here.'
 }) => {
   if (!transactions || transactions.length === 0) {
     return (
       <div className="empty-state">
         <Receipt className="empty-state-icon" />
-        <h4 className="empty-state-title">No transactions recorded yet</h4>
-        <p className="empty-state-subtitle">
-          Record your first revenue or expense to start monitoring your financial activities.
-        </p>
+        <h4 className="empty-state-title">{emptyTitle}</h4>
+        <p className="empty-state-subtitle">{emptyText}</p>
       </div>
     );
   }
@@ -45,13 +28,13 @@ const TransactionTable = ({
       <table>
         <thead>
           <tr>
-            <th>Type</th>
+            <th>Date</th>
             <th>Description</th>
             {showEventColumn && <th>Event</th>}
             <th>Category</th>
-            <th>Date</th>
-            <th>Amount</th>
-            {onDelete && <th style={{ textAlign: 'right' }}>Actions</th>}
+            <th>Type</th>
+            <th className="num">Amount</th>
+            {onDelete && <th aria-label="Actions" />}
           </tr>
         </thead>
         <tbody>
@@ -59,38 +42,29 @@ const TransactionTable = ({
             const isRevenue = tx.type === 'revenue';
             return (
               <tr key={tx._id}>
-                <td>
-                  <Badge variant={isRevenue ? 'revenue' : 'expense'}>
-                    {tx.type}
-                  </Badge>
-                </td>
-                <td style={{ fontWeight: 500 }}>{tx.description}</td>
-                {showEventColumn && (
-                  <td>
-                    {tx.event?.name || 'Unassigned'}
-                  </td>
-                )}
-                <td>
-                  <span style={{ color: 'var(--text-secondary)' }}>
-                    {tx.category?.name || 'General'}
-                  </span>
-                </td>
-                <td style={{ color: 'var(--text-secondary)' }}>
+                <td className="num" style={{ textAlign: 'left', color: 'var(--text-secondary)' }}>
                   {formatDate(tx.date)}
                 </td>
+                <td style={{ fontWeight: 500 }}>{tx.description}</td>
+                {showEventColumn && <td>{tx.event?.name || 'Unassigned'}</td>}
+                <td style={{ color: 'var(--text-secondary)' }}>{tx.category?.name || 'General'}</td>
                 <td>
-                  <span className={isRevenue ? 'amount-revenue' : 'amount-expense'}>
-                    {isRevenue ? '+' : '-'}{formatTND(tx.amount)}
-                  </span>
+                  <Badge variant={isRevenue ? 'revenue' : 'expense'}>
+                    {isRevenue ? 'Revenue' : 'Expense'}
+                  </Badge>
+                </td>
+                <td className={`num ${isRevenue ? 'amount-revenue' : 'amount-expense'}`}>
+                  {formatSignedTND(isRevenue ? tx.amount : -tx.amount)}
                 </td>
                 {onDelete && (
-                  <td style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right', width: '1%' }}>
                     <Button
                       variant="outline-danger"
                       size="sm"
                       icon={Trash2}
                       onClick={() => onDelete(tx._id, tx.description)}
-                      title="Delete Transaction"
+                      title={`Delete "${tx.description}"`}
+                      aria-label={`Delete "${tx.description}"`}
                       style={{ padding: '0.25rem 0.5rem' }}
                     />
                   </td>

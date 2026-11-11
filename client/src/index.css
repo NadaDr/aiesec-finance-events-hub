@@ -744,6 +744,47 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+}
+
+.kpi-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-value[title] {
+  cursor: help;
+}
+
+.kpi-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.4rem;
+}
+
+.kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-trend-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 0.15rem;
+}
+
+.kpi-trend-good {
+  color: var(--revenue);
+}
+
+.kpi-trend-bad {
+  color: var(--expense);
 }
 
 .kpi-revenue {
@@ -835,6 +876,80 @@ tr:last-child td {
 .amount-expense {
   color: var(--expense);
   font-weight: 700;
+}
+
+/* Chiffres alignés : kol les chiffres 3andhom nafs el 3ordh */
+.kpi-value,
+.amount-revenue,
+.amount-expense,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Colonnes de montants alignées à droite */
+th.num,
+td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Barre budget vs dépenses (components/BudgetBar.jsx) */
+.budget-bar {
+  margin-top: 0.85rem;
+}
+
+.budget-bar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-bar-head strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.budget-bar-track {
+  height: 6px;
+  background-color: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  background-color: var(--brand-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.budget-bar-warn .budget-bar-fill {
+  background-color: var(--warning);
+}
+
+.budget-bar-over .budget-bar-fill {
+  background-color: var(--expense);
+}
+
+.budget-bar-over .budget-bar-head .budget-bar-pct {
+  color: var(--expense);
+  font-weight: 700;
+}
+
+.budget-bar-warn .budget-bar-head .budget-bar-pct {
+  color: #b47814;
+  font-weight: 700;
+}
+
+.budget-bar-empty {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 0.85rem;
 }
 
 /* -------------------------------------------------------------
@@ -1193,12 +1308,35 @@ tr:last-child td {
 .event-card-financials {
   background-color: var(--surface);
   border-radius: var(--radius-md);
-  padding: 1rem;
-  margin-bottom: 1.35rem;
+  padding: 0.85rem 1rem;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.85rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
   border: 1px solid var(--border);
+}
+
+.event-card .budget-bar,
+.event-card .budget-bar-empty {
+  margin: 1rem 0 1.35rem;
+}
+
+/* Petite statistique : label gris + valeur */
+.stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-card-actions {
@@ -2287,4 +2425,208 @@ tr:last-child td {
   .bottom-cta-card {
     padding: 2.5rem 1.5rem;
   }
+}
+
+/* -------------------------------------------------------------
+   Toasts (notifications éphémères) — components/common/Toast.jsx
+------------------------------------------------------------- */
+.toast-stack {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: min(380px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.8rem 0.9rem;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--brand-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-modal);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  pointer-events: auto;
+  animation: toast-in 0.18s ease-out;
+}
+
+.toast-success { border-left-color: var(--revenue); }
+.toast-success .toast-icon { color: var(--revenue); }
+.toast-error { border-left-color: var(--expense); }
+.toast-error .toast-icon { color: var(--expense); }
+.toast-info .toast-icon { color: var(--brand-primary); }
+
+.toast-icon { flex-shrink: 0; margin-top: 1px; }
+.toast-message { flex: 1; line-height: 1.45; }
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+
+.toast-close:hover { color: var(--text-primary); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .toast-stack { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; }
+}
+
+/* -------------------------------------------------------------
+   App sections (Dashboard & pages) — classes réutilisables
+------------------------------------------------------------- */
+.eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+}
+
+.section-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+/* Sélecteur segmenté (ex : vue du graphe) */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.segmented button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.segmented button:hover {
+  color: var(--brand-dark);
+}
+
+.segmented button.active {
+  background-color: var(--background);
+  color: var(--brand-dark);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.segmented button:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 1px;
+}
+
+/* Résumé humain en haut du Dashboard */
+.insight-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.35rem;
+  margin-bottom: 1.75rem;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--revenue);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.insight-warn {
+  border-left-color: var(--warning);
+}
+
+.insight-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background-color: var(--revenue-bg);
+  color: var(--revenue);
+}
+
+.insight-warn .insight-icon {
+  background-color: var(--warning-bg);
+  color: #b47814;
+}
+
+.insight-text {
+  flex: 1;
+  min-width: 220px;
+}
+
+.insight-text strong {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--brand-dark);
+}
+
+.insight-text p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0.15rem 0 0;
+}
+
+/* Lien dans un tableau (nom de l'événement) */
+.table-link {
+  font-weight: 600;
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+
+.table-link:hover {
+  color: var(--brand-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.text-warning {
+  color: #b47814;
+  font-weight: 700;
 }

@@ -3,211 +3,156 @@
 // KHEDMETOU BELFALA9I TOUNSI :
 // Hadha el Slice el mas'oul 3la el Authentification w séssion el user :
 // - Connexion (Login) w Inscription (Register)
-// - Hifdh el Token JWT fel localStorage mta3 el navigateur bech ma yetna7ach bel F5
 // - Vérification automatique de session (checkAuth) wa9telli yet7all l'application
-// - Déconnexion (Logout) w tnadhyif el localStorage
+// - Déconnexion (logout) w session wfet (sessionExpired, yab3athha l'intercepteur Axios)
+// El token yetsajjel fel localStorage men store.js (store.subscribe), mouch houni :
+// les reducers lezem ykounou purs (ma ya3mlou 7atta effet de bord).
 //
 // LIEN M3A LES PAGES :
 // 1. App.jsx      --> y3ayet l- dispatch(checkAuth()) fi useEffect() awwel ma yet7all el site
-// 2. Login.jsx    --> yekhou el formData mel useState() w yab3ath dispatch(loginUser({ email, password }))
-// 3. Register.jsx --> yekhou el formData mel useState() w yab3ath dispatch(registerUser({ name, email, password }))
-// 4. Navbar.jsx   --> y3ayet l- dispatch(logout()) wa9telli tenzel Logout fel menu déroulant
-// 5. Sidebar.jsx  --> y3ayet l- dispatch(logout()) wa9telli tenzel Logout louta 3al ysar
+// 2. Login.jsx    --> dispatch(loginUser({ email, password }))
+// 3. Register.jsx --> dispatch(registerUser({ name, email, password }))
+// 4. Navbar.jsx / Sidebar.jsx --> dispatch(logout())
 // ==============================================================================
 
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import api from '../services/api';
+import { apiThunk, logout, sessionExpired } from './actions';
+
+export const TOKEN_KEY = 'aiesec_token';
+export const USER_KEY = 'aiesec_user';
 
 // ------------------------------------------------------------------------------
-// INITIALISATION DE L'ETAT : Njibou el Token wel User mel localStorage
-// Bech ki el user ya3mel Refresh lel page (F5), ma yarja3ch yconnecti men jdid
+// INITIALISATION : Njibou el Token wel User mel localStorage (bech F5 ma ydeconnectich)
+// Lecture tolérante : localStorage fased ma lezemch yfarka3 l'application
 // ------------------------------------------------------------------------------
-const storedToken = localStorage.getItem('aiesec_token') || null;
-const storedUser = localStorage.getItem('aiesec_user')
-  ? JSON.parse(localStorage.getItem('aiesec_user'))
-  : null;
+const loadSession = () => {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const user = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+    return token && user ? { token, user } : { token: null, user: null };
+  } catch {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    } catch {
+      /* localStorage inaccessible */
+    }
+    return { token: null, user: null };
+  }
+};
+
+const session = loadSession();
 
 const initialState = {
-  user: storedUser,                               // Données el user ({ _id, name, email })
-  token: storedToken,                             // Token JWT li yab3ath fel Headers Authorization: Bearer <token>
-  isAuthenticated: !!(storedToken && storedUser), // true ken famma token w user m5aznin
-  loading: false,                                 // true wa9telli 9a3ed yconnecti (bech n7ottou spinner fel bouton)
-  error: null                                     // Message d'erreur (ex: "Email ou mot de passe incorrect")
+  user: session.user,                    // Données el user ({ _id, name, email })
+  token: session.token,                  // Token JWT (Authorization: Bearer <token>)
+  isAuthenticated: !!session.token,      // true ken famma session
+  loading: false,                        // true wa9telli 9a3ed yconnecti (spinner fel bouton)
+  error: null,                           // Message d'erreur (ex: "Email ou mot de passe incorrect")
+  sessionMessage: null                   // Message fel page Login ba3d ma session tofa
 };
 
 // ------------------------------------------------------------------------------
-// ASYNC THUNK 1 : registerUser
-// KHEDMETOU     : Yab3ath { name, email, password } lel backend (POST /api/auth/register)
-//                 Ki yenja7, ysajjel el token fel localStorage w yconnectih direct
-// CHKOUN YESTA3MLOU :
-// - Register.jsx (fi handleSubmit wa9telli tenzel "Create Account")
+// ASYNC THUNKS
 // ------------------------------------------------------------------------------
-export const registerUser = createAsyncThunk(
+const pickSession = ({ token, user }) => ({ token, user });
+
+// POST /api/auth/register -> { token, user }
+export const registerUser = apiThunk(
   'auth/registerUser',
-  async ({ name, email, password }, { rejectWithValue }) => {
-    try {
-      const response = await api.post('/auth/register', { name, email, password });
-      if (response.data.success) {
-        const { token, user } = response.data;
-        // Nsajjlou fel navigateur bech el session to93od 7atta ken sakker l'onglet
-        localStorage.setItem('aiesec_token', token);
-        localStorage.setItem('aiesec_user', JSON.stringify(user));
-        return { token, user };
-      }
-      return rejectWithValue(response.data.message || 'Moshkla fel inscription.');
-    } catch (err) {
-      let msg = err.response?.data?.message;
-      if (!msg) {
-        if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
-          msg = 'Moshkla fi connexion el serveur backend. Thabbet fel port 5000.';
-        } else {
-          msg = err.message || 'Ghalta fel inscription.';
-        }
-      }
-      return rejectWithValue(msg);
-    }
-  }
+  async ({ name, email, password }) => (await api.post('/auth/register', { name, email, password })).data,
+  pickSession
 );
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 2 : loginUser
-// KHEDMETOU     : Yab3ath { email, password } lel backend (POST /api/auth/login)
-//                 El backend ythabbet bel bcrypt wel JWT, ken s7i7 yrajja3 token w user
-// CHKOUN YESTA3MLOU :
-// - Login.jsx (fi handleSubmit wa9telli tenzel "Login")
-// ------------------------------------------------------------------------------
-export const loginUser = createAsyncThunk(
+// POST /api/auth/login -> { token, user }
+export const loginUser = apiThunk(
   'auth/loginUser',
-  async ({ email, password }, { rejectWithValue }) => {
-    try {
-      const response = await api.post('/auth/login', { email, password });
-      if (response.data.success) {
-        const { token, user } = response.data;
-        // Nsajjlou fel navigateur
-        localStorage.setItem('aiesec_token', token);
-        localStorage.setItem('aiesec_user', JSON.stringify(user));
-        return { token, user };
-      }
-      return rejectWithValue(response.data.message || 'Moshkla fel connexion.');
-    } catch (err) {
-      let msg = err.response?.data?.message;
-      if (!msg) {
-        if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
-          msg = 'Moshkla fi connexion el serveur backend. Thabbet fel port 5000.';
-        } else {
-          msg = err.message || 'Email wala mot de passe ghalet.';
-        }
-      }
-      return rejectWithValue(msg);
-    }
-  }
+  async ({ email, password }) => (await api.post('/auth/login', { email, password })).data,
+  pickSession
 );
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 3 : checkAuth
-// KHEDMETOU     : Awwel ma yethall el site, yhez el token li fel navigateur w yemchi ysa9si el backend
-//                 (GET /api/auth/me) : "Ya backend, hadha el token mezel valable ?"
-// CHKOUN YESTA3MLOU :
-// - App.jsx (fi useEffect([]) awwel ma tchargi l-application)
-// ------------------------------------------------------------------------------
-export const checkAuth = createAsyncThunk(
+// GET /api/auth/me : "Ya backend, hadha el token mezel valable ?"
+// Ken token wfet, l'intercepteur Axios yab3ath sessionExpired wa7dou.
+export const checkAuth = apiThunk(
   'auth/checkAuth',
-  async (_, { rejectWithValue }) => {
-    const token = localStorage.getItem('aiesec_token');
-    if (!token) return null; // Ma fammech token, ya3ni mehouche connecté
-    try {
-      const response = await api.get('/auth/me');
-      if (response.data.success && response.data.user) {
-        localStorage.setItem('aiesec_user', JSON.stringify(response.data.user));
-        return response.data.user;
-      }
-      return rejectWithValue('Session wfé wa9tha.');
-    } catch (err) {
-      // Ken el token expiré wala fased, nfas5ouh bech ma ya3melch ghalat
-      localStorage.removeItem('aiesec_token');
-      localStorage.removeItem('aiesec_user');
-      return rejectWithValue('Token expiré.');
-    }
-  }
+  async () => (await api.get('/auth/me')).data,
+  (data) => data.user,
 );
 
 // ------------------------------------------------------------------------------
-// SLICE CONFIGURATION & REDUCERS
+// SLICE
 // ------------------------------------------------------------------------------
+const clearSession = (state) => {
+  state.user = null;
+  state.token = null;
+  state.isAuthenticated = false;
+  state.loading = false;
+};
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Action synchrone : Déconnexion mta3 el user
-    // Nfas5ou el user mel store w nfas5ou el token mel localStorage
-    logout: (state) => {
-      state.user = null;
-      state.token = null;
-      state.isAuthenticated = false;
-      state.loading = false;
-      state.error = null;
-      localStorage.removeItem('aiesec_token');
-      localStorage.removeItem('aiesec_user');
-    },
-    // Action synchrone : Nna7iw message d'erreur
+    // Nna7iw message d'erreur
     clearError: (state) => {
       state.error = null;
+    },
+    clearSessionMessage: (state) => {
+      state.sessionMessage = null;
     }
   },
   extraReducers: (builder) => {
+    const onPending = (state) => {
+      state.loading = true;
+      state.error = null;
+      state.sessionMessage = null;
+    };
+    const onFulfilled = (state, action) => {
+      state.loading = false;
+      state.token = action.payload.token;
+      state.user = action.payload.user;
+      state.isAuthenticated = true;
+      state.error = null;
+    };
+    const onRejected = (fallback) => (state, action) => {
+      state.loading = false;
+      state.error = action.payload || fallback;
+    };
+
     builder
-      // --- Inscription (registerUser) ---
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.token = action.payload.token;
-        state.user = action.payload.user;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Ghalta fel inscription.';
-      })
+      // --- Inscription / Connexion ---
+      .addCase(registerUser.pending, onPending)
+      .addCase(registerUser.fulfilled, onFulfilled)
+      .addCase(registerUser.rejected, onRejected('Ghalta fel inscription.'))
+      .addCase(loginUser.pending, onPending)
+      .addCase(loginUser.fulfilled, onFulfilled)
+      .addCase(loginUser.rejected, onRejected('Email wala mot de passe ghalet.'))
 
-      // --- Connexion (loginUser) ---
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.token = action.payload.token;
-        state.user = action.payload.user;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Email wala mot de passe ghalet.';
-      })
-
-      // --- Vérification automatique de session (checkAuth) ---
+      // --- Vérification de session au démarrage ---
       .addCase(checkAuth.fulfilled, (state, action) => {
-        if (action.payload) {
-          state.user = action.payload;
-          state.isAuthenticated = true;
-        } else {
-          state.user = null;
-          state.token = null;
-          state.isAuthenticated = false;
-        }
+        if (action.payload) state.user = action.payload;
       })
       .addCase(checkAuth.rejected, (state) => {
-        state.user = null;
-        state.token = null;
-        state.isAuthenticated = false;
+        // 401 deja t3alj b-sessionExpired ; ken serveur ma jewebch, nkhalliw el session
+        if (!state.token) clearSession(state);
+      })
+
+      // --- Déconnexion volontaire ---
+      .addCase(logout, (state) => {
+        clearSession(state);
+        state.error = null;
+        state.sessionMessage = null;
+      })
+
+      // --- Session wfet (401 men l'intercepteur) ---
+      .addCase(sessionExpired, (state, action) => {
+        clearSession(state);
+        state.sessionMessage = action.payload || 'Session mte3ek wfet, 3awed connecti.';
       });
   }
 });
 
-export const { logout, clearError } = authSlice.actions;
+export { logout, sessionExpired };
+export const { clearError, clearSessionMessage } = authSlice.actions;
 export default authSlice.reducer;

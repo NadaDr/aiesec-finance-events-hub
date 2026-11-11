@@ -16,47 +16,38 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchEventById, deleteEvent } from '../redux/eventsSlice';
 import { createTransaction, deleteTransaction } from '../redux/transactionsSlice';
 import { fetchCategories } from '../redux/categoriesSlice';
-import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar';
 import FinancialCard from '../components/FinancialCard';
 import TransactionTable from '../components/TransactionTable';
-import { Button, Input, Select, Modal, Alert, Spinner, Badge } from '../components/common';
+import BudgetBar from '../components/BudgetBar';
+import { formatTND, formatSignedTND, formatDateRange } from '../utils/format';
+import {
+  Button,
+  Input,
+  Select,
+  Modal,
+  Alert,
+  Spinner,
+  Badge,
+  useToast,
+  useConfirm
+} from '../components/common';
 import {
   ArrowLeft,
   MapPin,
   Calendar,
-  Wallet,
   TrendingUp,
   TrendingDown,
   Trash2,
   DollarSign
 } from 'lucide-react';
 
-const formatTND = (amount) => {
-  const num = Number(amount) || 0;
-  return (
-    num.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }) + ' TND'
-  );
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
-};
-
 const EventDetails = () => {
   // useParams: yjbed l-id mte3 l-évènement mel lien (URL)
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   // useSelector 1: njibou l-évènement sélectionné w loading/error mel eventsSlice
   const { currentEvent, currentEventLoading, currentEventError } = useSelector(
@@ -129,6 +120,7 @@ const EventDetails = () => {
 
       if (createTransaction.fulfilled.match(resultAction)) {
         setShowModal(false);
+        toast.success(`${modalType === 'revenue' ? 'Revenue' : 'Expense'} recorded.`);
         // Refresh event details to update live calculated totals and table
         dispatch(fetchEventById(id));
       } else {
@@ -141,61 +133,57 @@ const EventDetails = () => {
 
   // Fonction tfasakh transaction men west l-évènement
   const handleDeleteTransaction = async (txId, txDescription) => {
-    const confirmDelete = window.confirm(
-      `Delete transaction "${txDescription}"? This will update the event financials dynamically.`
-    );
-    if (!confirmDelete) return;
+    const ok = await confirm({
+      title: 'Delete transaction',
+      message: `Delete transaction "${txDescription}"? The event financials will be recalculated.`
+    });
+    if (!ok) return;
 
-    const resultAction = await dispatch(deleteTransaction(txId));
-    if (deleteTransaction.fulfilled.match(resultAction)) {
+    try {
+      await dispatch(deleteTransaction(txId)).unwrap();
+      toast.success('Transaction deleted.');
       dispatch(fetchEventById(id));
+    } catch (message) {
+      toast.error(message);
     }
   };
 
   // Fonction tfasakh l-évènement kemel mel base de données
   const handleDeleteEvent = async () => {
     const eventName = currentEvent?.event?.name || 'this event';
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete "${eventName}" and all its financial records? This action cannot be undone.`
-    );
-    if (!confirmDelete) return;
+    const ok = await confirm({
+      title: 'Delete event',
+      message: `Delete "${eventName}" and all its financial records? This action cannot be undone.`
+    });
+    if (!ok) return;
 
-    const resultAction = await dispatch(deleteEvent(id));
-    if (deleteEvent.fulfilled.match(resultAction)) {
+    try {
+      await dispatch(deleteEvent(id)).unwrap();
+      toast.success(`"${eventName}" deleted.`);
       navigate('/events');
+    } catch (message) {
+      toast.error(message);
     }
   };
 
-  if (currentEventLoading) {
-    return (
-      <div className="auth-layout">
-        <Sidebar />
-        <div className="main-content">
-          <Navbar />
-          <Spinner text="Loading event financial details from MongoDB..." />
-        </div>
-      </div>
-    );
-  }
+  // Ma naffichiw ken l'event mta3 el URL (mouch event 9dim b9a fel store)
+  const event = currentEvent?.event?._id === id ? currentEvent.event : null;
+  const transactions = event ? currentEvent.transactions || [] : [];
 
-  const event = currentEvent?.event;
-  const transactions = currentEvent?.transactions || [];
+  // Spinner ken awwel chargement barka (ba3d add/delete transaction, nkhalliw el page affichée)
+  if (!event && (currentEventLoading || !currentEventError)) {
+    return <Spinner text="Loading event…" />;
+  }
 
   if (!event) {
     return (
-      <div className="auth-layout">
-        <Sidebar />
-        <div className="main-content">
-          <Navbar />
-          <div className="page-content">
-            <Alert type="danger" message={currentEventError || 'Event not found.'} />
-            <Link to="/events" style={{ textDecoration: 'none' }}>
-              <Button variant="secondary" icon={ArrowLeft}>
-                Back to Events
-              </Button>
-            </Link>
-          </div>
-        </div>
+      <div className="page-content">
+        <Alert type="danger" message={currentEventError || 'Event not found.'} />
+        <Link to="/events" style={{ textDecoration: 'none' }}>
+          <Button variant="secondary" icon={ArrowLeft}>
+            Back to Events
+          </Button>
+        </Link>
       </div>
     );
   }
@@ -204,226 +192,222 @@ const EventDetails = () => {
   const availableCategories = categories.filter((c) => c.type === modalType);
 
   return (
-    <div className="auth-layout">
-      <Sidebar />
-      <div className="main-content">
-        <Navbar />
+    <>
+      <div className="page-content">
+        {/* Breadcrumb / Back Navigation */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <Link
+            to="/events"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: 'var(--text-secondary)',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              textDecoration: 'none'
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>All events</span>
+          </Link>
+        </div>
 
-        <div className="page-content">
-          {/* Breadcrumb / Back Navigation */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <Link
-              to="/events"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                color: 'var(--text-secondary)',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                textDecoration: 'none'
-              }}
-            >
-              <ArrowLeft size={16} />
-              <span>Back to Events</span>
-            </Link>
-          </div>
-
-          {/* Event Header Banner */}
-          <div className="card" style={{ marginBottom: '1.75rem', borderLeft: '5px solid var(--primary-blue)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
-                  <h1 className="page-title" style={{ fontSize: '1.75rem' }}>
-                    {event.name}
-                  </h1>
-                  {event.netBalance >= 0 ? (
-                    <Badge variant="positive">Positive Surplus</Badge>
-                  ) : (
-                    <Badge variant="negative">Budget Deficit</Badge>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <MapPin size={16} />
-                    <span>{event.location}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Calendar size={16} />
-                    <span>
-                      {formatDate(event.startDate)} &mdash; {formatDate(event.endDate)}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Wallet size={16} />
-                    <span>Budget: <strong>{formatTND(event.budget)}</strong></span>
-                  </div>
-                </div>
-
-                {event.description && (
-                  <p style={{ marginTop: '0.85rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                    {event.description}
-                  </p>
+        {/* Event Header Banner */}
+        <div className="card" style={{ marginBottom: '1.75rem', borderLeft: '5px solid var(--brand-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                <h1 className="page-title" style={{ fontSize: '1.75rem' }}>
+                  {event.name}
+                </h1>
+                {event.financialStatus === 'no_transactions' ? (
+                  <Badge variant="neutral">No activity yet</Badge>
+                ) : event.netBalance >= 0 ? (
+                  <Badge variant="positive">Profitable</Badge>
+                ) : (
+                  <Badge variant="negative">Deficit</Badge>
                 )}
               </div>
 
-              {/* Action Buttons: Add Revenue, Add Expense, Delete */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <Button
-                  variant="success"
-                  icon={TrendingUp}
-                  onClick={() => openAddModal('revenue')}
-                >
-                  + Add Revenue
-                </Button>
-                <Button
-                  variant="danger"
-                  icon={TrendingDown}
-                  onClick={() => openAddModal('expense')}
-                >
-                  + Add Expense
-                </Button>
-                <Button
-                  variant="outline-danger"
-                  icon={Trash2}
-                  onClick={handleDeleteEvent}
-                  title="Delete Event"
-                />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <MapPin size={16} />
+                  <span>{event.location}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Calendar size={16} />
+                  <span>{formatDateRange(event.startDate, event.endDate)}</span>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* 3 Event KPI Cards */}
-          <div className="kpi-grid">
-            <FinancialCard
-              title="Total Event Revenue"
-              value={event.totalRevenue}
-              type="revenue"
-              subtitle="All sponsorship & ticket sales"
-            />
-            <FinancialCard
-              title="Total Event Expenses"
-              value={event.totalExpenses}
-              type="expense"
-              subtitle="All venue, catering & logistics"
-            />
-            <FinancialCard
-              title="Event Net Balance"
-              value={event.netBalance}
-              type="balance"
-              subtitle={
-                event.netBalance >= 0
-                  ? `Surplus: +${formatTND(event.netBalance)}`
-                  : `Deficit: ${formatTND(event.netBalance)}`
-              }
-            />
-          </div>
-
-          {/* Transactions for this Event */}
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--dark-blue)' }}>
-                  Event Financial Transactions
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  All incoming revenues and outgoing expenses recorded for this event
+              {event.description && (
+                <p style={{ marginTop: '0.85rem', color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                  {event.description}
                 </p>
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {transactions.length} transaction(s)
+              )}
+
+              <div style={{ maxWidth: '420px' }}>
+                <BudgetBar spent={event.totalExpenses} budget={event.budget} />
               </div>
             </div>
 
-            <TransactionTable
-              transactions={transactions}
-              onDelete={handleDeleteTransaction}
-              showEventColumn={false}
-            />
+            {/* Action Buttons: Add Revenue, Add Expense, Delete */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <Button
+                variant="success"
+                icon={TrendingUp}
+                onClick={() => openAddModal('revenue')}
+              >
+                Add revenue
+              </Button>
+              <Button
+                variant="danger"
+                icon={TrendingDown}
+                onClick={() => openAddModal('expense')}
+              >
+                Add expense
+              </Button>
+              <Button
+                variant="outline-danger"
+                icon={Trash2}
+                onClick={handleDeleteEvent}
+                title="Delete event"
+                aria-label="Delete event"
+              />
+            </div>
           </div>
+        </div>
+
+        {/* 3 Event KPI Cards */}
+        <div className="kpi-grid">
+          <FinancialCard
+            title="Revenue"
+            value={event.totalRevenue}
+            type="revenue"
+            subtitle="Sponsorships, tickets & fees"
+          />
+          <FinancialCard
+            title="Expenses"
+            value={event.totalExpenses}
+            type="expense"
+            subtitle="Venue, logistics & marketing"
+          />
+          <FinancialCard
+            title="Net balance"
+            value={event.netBalance}
+            type="balance"
+            subtitle={
+              event.financialStatus === 'no_transactions'
+                ? 'Nothing recorded yet'
+                : event.netBalance >= 0
+                  ? `This event made ${formatSignedTND(event.netBalance)}`
+                  : `This event lost ${formatTND(Math.abs(event.netBalance))}`
+            }
+          />
+        </div>
+
+        {/* Transactions for this Event */}
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <h3 className="section-title">Transactions</h3>
+              <p className="section-subtitle">
+                {transactions.length === 0
+                  ? 'Nothing recorded for this event yet'
+                  : `${transactions.length} ${transactions.length === 1 ? 'entry' : 'entries'} for this event`}
+              </p>
+            </div>
+          </div>
+
+          <TransactionTable
+            transactions={transactions}
+            onDelete={handleDeleteTransaction}
+            showEventColumn={false}
+            emptyText="Use “Add revenue” or “Add expense” above to record the first one."
+          />
         </div>
       </div>
 
-      {/* Add Revenue / Add Expense Modal using reusable Modal component */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={modalType === 'revenue' ? '+ Record Revenue' : '+ Record Expense'}
-        subtitle={`Record a new ${modalType} transaction for ${event.name}`}
-      >
-        <Alert type="danger" message={modalError} onClose={() => setModalError('')} />
+    {/* Add Revenue / Add Expense Modal using reusable Modal component */}
+    <Modal
+      isOpen={showModal}
+      onClose={() => setShowModal(false)}
+      title={modalType === 'revenue' ? 'Record revenue' : 'Record expense'}
+      subtitle={`For ${event.name}`}
+    >
+      <Alert type="danger" message={modalError} onClose={() => setModalError('')} />
 
-        <form onSubmit={handleTxSubmit}>
-          <Select
-            label="Category"
-            name="category"
-            value={txForm.category}
-            onChange={(e) => setTxForm({ ...txForm, category: e.target.value })}
-            placeholder={`Select a ${modalType} category`}
-            options={availableCategories.map((c) => ({
-              value: c._id,
-              label: c.name
-            }))}
-            required
-          />
+      <form onSubmit={handleTxSubmit}>
+        <Select
+          label="Category"
+          name="category"
+          value={txForm.category}
+          onChange={(e) => setTxForm({ ...txForm, category: e.target.value })}
+          placeholder={`Select a ${modalType} category`}
+          options={availableCategories.map((c) => ({
+            value: c._id,
+            label: c.name
+          }))}
+          required
+        />
 
+        <Input
+          label="Description"
+          name="description"
+          placeholder={
+            modalType === 'revenue'
+              ? 'e.g. Gold Sponsorship from Tech Corp'
+              : 'e.g. Venue rental down payment'
+          }
+          value={txForm.description}
+          onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
+          required
+        />
+
+        <div className="form-row">
           <Input
-            label="Description"
-            name="description"
-            placeholder={
-              modalType === 'revenue'
-                ? 'e.g. Gold Sponsorship from Tech Corp'
-                : 'e.g. Venue rental down payment'
-            }
-            value={txForm.description}
-            onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
+            label="Amount (TND)"
+            name="amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            placeholder="e.g. 1500"
+            value={txForm.amount}
+            onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
+            icon={DollarSign}
             required
           />
+          <Input
+            label="Transaction Date"
+            name="date"
+            type="date"
+            value={txForm.date}
+            onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
+            icon={Calendar}
+            required
+          />
+        </div>
 
-          <div className="form-row">
-            <Input
-              label="Amount (TND)"
-              name="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="e.g. 1500"
-              value={txForm.amount}
-              onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
-              icon={DollarSign}
-              required
-            />
-            <Input
-              label="Transaction Date"
-              name="date"
-              type="date"
-              value={txForm.date}
-              onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
-              icon={Calendar}
-              required
-            />
-          </div>
-
-          <div className="form-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant={modalType === 'revenue' ? 'success' : 'danger'}
-              loading={isTxSubmitting}
-            >
-              Save {modalType === 'revenue' ? 'Revenue' : 'Expense'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-    </div>
+        <div className="form-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setShowModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant={modalType === 'revenue' ? 'success' : 'danger'}
+            loading={isTxSubmitting}
+          >
+            Save {modalType === 'revenue' ? 'Revenue' : 'Expense'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+    </>
   );
 };
 

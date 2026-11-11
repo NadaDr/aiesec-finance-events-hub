@@ -15,7 +15,7 @@ const Category = require('../models/Category');
 //              - Filtre par événement : ?event=<eventId>
 //              - Filtre par type      : ?type=revenue ou ?type=expense
 // ------------------------------------------------------------------------------
-const getTransactions = async (req, res) => {
+const getTransactions = async (req, res, next) => {
   try {
     const { event, type } = req.query;
 
@@ -45,11 +45,7 @@ const getTransactions = async (req, res) => {
       transactions
     });
   } catch (error) {
-    console.error('[Transaction Controller] getTransactions error:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Impossible de récupérer les transactions.'
-    });
+    next(error);
   }
 };
 
@@ -59,7 +55,7 @@ const getTransactions = async (req, res) => {
 // ACCES      : Privé
 // ROLE       : Enregistre une nouvelle transaction (recette ou dépense)
 // ------------------------------------------------------------------------------
-const createTransaction = async (req, res) => {
+const createTransaction = async (req, res, next) => {
   try {
     const { event, category, type, description, amount, date } = req.body;
 
@@ -132,11 +128,7 @@ const createTransaction = async (req, res) => {
       transaction: populatedTx
     });
   } catch (error) {
-    console.error('[Transaction Controller] createTransaction error:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Impossible d enregistrer la transaction.'
-    });
+    next(error);
   }
 };
 
@@ -146,7 +138,7 @@ const createTransaction = async (req, res) => {
 // ACCES      : Privé
 // ROLE       : Supprime une transaction financière existante
 // ------------------------------------------------------------------------------
-const deleteTransaction = async (req, res) => {
+const deleteTransaction = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -168,11 +160,7 @@ const deleteTransaction = async (req, res) => {
       message: 'Transaction supprimée avec succès.'
     });
   } catch (error) {
-    console.error('[Transaction Controller] deleteTransaction error:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Impossible de supprimer la transaction.'
-    });
+    next(error);
   }
 };
 

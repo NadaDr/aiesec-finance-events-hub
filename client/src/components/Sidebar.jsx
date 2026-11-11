@@ -15,7 +15,6 @@ import {
   Receipt,
   Tags,
   LogOut,
-  ShieldCheck,
   TrendingUp,
   User as UserIcon
 } from 'lucide-react';
@@ -100,17 +99,6 @@ const Sidebar = () => {
             <span className="sidebar-link-text">Categories</span>
           </NavLink>
         </nav>
-
-        {/* 3) CARTE D'INFO LC (Local Committee Status Badge) */}
-        <div className="sidebar-widget">
-          <div className="sidebar-widget-header">
-            <ShieldCheck size={15} color="var(--brand-primary)" />
-            <span className="sidebar-widget-badge">LC TUNISIA</span>
-          </div>
-          <p className="sidebar-widget-text">
-            Financial Health & Real-time Budget Audit Active
-          </p>
-        </div>
       </div>
 
       {/* 4) FOOTER EL-SIDEBAR (Dima lasseq fel 9a3): User Profile Card + Bouton Logout */}

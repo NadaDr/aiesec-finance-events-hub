@@ -23,7 +23,7 @@ const generateToken = (id) => {
 // CHKOUN   : Ay we7ed ynajem ya3mel compte (Public)
 // KHEDMETHA: Tsajjel membre jdid fi AIESEC fil base MongoDB
 // ------------------------------------------------------------------------------
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
   try {
     // 1. Njibou les données eli b3athhom el client mel formulaire (Nom, Email, Mdp)
     const { name, email, password } = req.body;
@@ -81,12 +81,7 @@ const registerUser = async (req, res) => {
       });
     }
   } catch (error) {
-    // 7. Ken saret moshkla fel serveur
-    console.error('[Auth Controller] Ghalta fel register:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Moshkla fel serveur fel inscription.'
-    });
+    next(error);
   }
 };
 
@@ -96,7 +91,7 @@ const registerUser = async (req, res) => {
 // CHKOUN   : Ay we7ed y7eb yconnecti (Public)
 // KHEDMETHA: Nthabtou fel email wel mdp, ken s7a7 nmeddoulou Token JWT
 // ------------------------------------------------------------------------------
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
   try {
     // 1. Nrecupériw l'email wel mot de passe eli ketebhom el user
     const { email, password } = req.body;
@@ -143,11 +138,7 @@ const loginUser = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('[Auth Controller] Ghalta fel login:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Moshkla fel serveur fel connexion.'
-    });
+    next(error);
   }
 };
 
@@ -157,7 +148,7 @@ const loginUser = async (req, res) => {
 // CHKOUN   : Privé (Lezem ykoun mconnecti 3andou Token)
 // KHEDMETHA: Yrajja3 les infos mta3 el user eli mconnecti tawa
 // ------------------------------------------------------------------------------
-const getMe = async (req, res) => {
+const getMe = async (req, res, next) => {
   try {
     // req.user 7at-houlna el middleware 'protect' 9bal ma yousel l-houni
     return res.status(200).json({
@@ -165,10 +156,7 @@ const getMe = async (req, res) => {
       user: req.user
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Moshkla fel serveur.'
-    });
+    next(error);
   }
 };
 

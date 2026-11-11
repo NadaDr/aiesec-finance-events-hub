@@ -9,10 +9,10 @@
 // 4) navigate('/dashboard'): wa9t l'inscription tenja7, nhezzou l-user directement lel Dashboard.
 // ======================================================================================
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser } from '../redux/authSlice';
+import { registerUser, clearError } from '../redux/authSlice';
 import Navbar from '../components/Navbar';
 import { Button, Input, Alert } from '../components/common';
 import aiesecLogo from '../assets/AIESEClogo.png';
@@ -32,7 +32,16 @@ const Register = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   // useSelector: njibou loading w error mel authSlice
-  const { loading: isSubmitting, error: reduxError } = useSelector((state) => state.auth);
+  const {
+    loading: isSubmitting,
+    error: reduxError,
+    isAuthenticated
+  } = useSelector((state) => state.auth);
+
+  // Nna7iw erreur 9dima (mathalan men page Login) wa9t nod5lou
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleChange = (e) => {
     setFormData({
@@ -66,7 +75,7 @@ const Register = () => {
     try {
       const resultAction = await dispatch(registerUser({ name, email, password }));
       if (registerUser.fulfilled.match(resultAction)) {
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       }
     } catch (err) {
       setLocalError('Registration failed. Please try again.');
@@ -74,6 +83,11 @@ const Register = () => {
   };
 
   const displayError = localError || reduxError;
+
+  // Deja connecté : nhezzouh lel Dashboard
+  if (isAuthenticated && !isSubmitting) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="app-container">
@@ -167,7 +181,7 @@ const Register = () => {
             Already have an account?{' '}
             <Link
               to="/login"
-              style={{ color: 'var(--primary-blue)', fontWeight: 600 }}
+              style={{ color: 'var(--brand-primary)', fontWeight: 600 }}
             >
               Login
             </Link>

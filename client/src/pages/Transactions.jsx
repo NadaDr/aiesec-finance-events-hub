@@ -6,25 +6,26 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchTransactions, createTransaction, deleteTransaction } from '../redux/transactionsSlice';
 import { fetchEvents } from '../redux/eventsSlice';
 import { fetchCategories } from '../redux/categoriesSlice';
-import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar';
 import TransactionTable from '../components/TransactionTable';
-import { Button, Input, Select, Modal, Alert, Spinner } from '../components/common';
+import {
+  Button,
+  Input,
+  Select,
+  Modal,
+  Alert,
+  Spinner,
+  useToast,
+  useConfirm
+} from '../components/common';
 import { Plus, Filter, ArrowUpRight, ArrowDownRight, DollarSign, Calendar } from 'lucide-react';
 
-const formatTND = (amount) => {
-  const num = Number(amount) || 0;
-  return (
-    num.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }) + ' TND'
-  );
-};
+import { formatSignedTND } from '../utils/format';
 
 const Transactions = () => {
   // 1. REDUX HOOKS :
   const dispatch = useDispatch();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   // useSelector : Njibou les données mel 3 tranches (Slices) de Redux :
   // - state.transactions : Les transactions mte3na wel état de chargement/erreur
@@ -129,6 +130,7 @@ const Transactions = () => {
 
       if (createTransaction.fulfilled.match(resultAction)) {
         setShowModal(false);
+        toast.success(`${type === 'revenue' ? 'Revenue' : 'Expense'} recorded.`);
       } else {
         setFormError(resultAction.payload || 'Échec de tasjil la transaction.');
       }
@@ -140,12 +142,18 @@ const Transactions = () => {
   // handleDeleteTransaction : Wa9telli tenzel 3al poubelle 🗑️ fi satr transaction
   // Yab3ath dispatch(deleteTransaction(txId)) lel Redux w yfasa5ha mel MongoDB
   const handleDeleteTransaction = async (txId, txDescription) => {
-    const confirmDelete = window.confirm(
-      `Met'akked t7eb tfasa5 el transaction "${txDescription}" ?`
-    );
-    if (!confirmDelete) return;
+    const ok = await confirm({
+      title: 'Delete transaction',
+      message: `Delete transaction "${txDescription}"?`
+    });
+    if (!ok) return;
 
-    dispatch(deleteTransaction(txId));
+    try {
+      await dispatch(deleteTransaction(txId)).unwrap();
+      toast.success('Transaction deleted.');
+    } catch (message) {
+      toast.error(message);
+    }
   };
 
   // Filtered categories for modal
@@ -159,223 +167,219 @@ const Transactions = () => {
   }, 0);
 
   return (
-    <div className="auth-layout">
-      <Sidebar />
-      <div className="main-content">
-        <Navbar />
-
-        <div className="page-content">
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Transactions</h1>
-              <p className="page-subtitle">
-                Record and filter all event revenues and expenses
-              </p>
-            </div>
-            <Button
-              variant="primary"
-              icon={Plus}
-              onClick={handleOpenAddModal}
-            >
-              Record Transaction
-            </Button>
+    <>
+      <div className="page-content">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Transactions</h1>
+            <p className="page-subtitle">
+              Every sponsorship, ticket and expense, across all your events
+            </p>
           </div>
-
-          {/* Filters Bar: Event and Type */}
-          <div className="filters-bar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
-              <Filter size={16} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Filters:</span>
-            </div>
-
-            {/* Filter by Event */}
-            <div>
-              <select
-                className="form-select"
-                value={selectedEvent}
-                onChange={(e) => setSelectedEvent(e.target.value)}
-              >
-                <option value="all">All Events</option>
-                {events.map((ev) => (
-                  <option key={ev._id} value={ev._id}>
-                    {ev.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Filter by Type */}
-            <div>
-              <select
-                className="form-select"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-              >
-                <option value="all">All Types (Revenue & Expenses)</option>
-                <option value="revenue">Revenues Only</option>
-                <option value="expense">Expenses Only</option>
-              </select>
-            </div>
-
-            {(selectedEvent !== 'all' || selectedType !== 'all') && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setSelectedEvent('all');
-                  setSelectedType('all');
-                }}
-              >
-                Reset Filters
-              </Button>
-            )}
-
-            <div style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Total: <strong>{transactions.length}</strong> transactions &bull; Net Sum:{' '}
-              <span
-                style={{
-                  fontWeight: 700,
-                  color: totalAmount >= 0 ? 'var(--color-revenue)' : 'var(--color-expense)'
-                }}
-              >
-                {totalAmount >= 0 ? '+' : ''}{formatTND(totalAmount)}
-              </span>
-            </div>
-          </div>
-
-          <Alert type="danger" message={txError} />
-
-          {loading && transactions.length === 0 ? (
-            <Spinner text="Loading transactions from MongoDB..." />
-          ) : (
-            <TransactionTable
-              transactions={transactions}
-              onDelete={handleDeleteTransaction}
-              showEventColumn={true}
-            />
-          )}
+          <Button
+            variant="primary"
+            icon={Plus}
+            onClick={handleOpenAddModal}
+          >
+            Record transaction
+          </Button>
         </div>
+
+        {/* Filters Bar: Event and Type */}
+        <div className="filters-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+            <Filter size={16} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Filters:</span>
+          </div>
+
+          {/* Filter by Event */}
+          <div>
+            <select
+              className="form-select"
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+            >
+              <option value="all">All events</option>
+              {events.map((ev) => (
+                <option key={ev._id} value={ev._id}>
+                  {ev.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter by Type */}
+          <div>
+            <select
+              className="form-select"
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+            >
+              <option value="all">Revenue & expenses</option>
+              <option value="revenue">Revenue only</option>
+              <option value="expense">Expenses only</option>
+            </select>
+          </div>
+
+          {(selectedEvent !== 'all' || selectedType !== 'all') && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setSelectedEvent('all');
+                setSelectedType('all');
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
+
+          <div className="num" style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            {transactions.length} {transactions.length === 1 ? 'entry' : 'entries'} &middot; net{' '}
+            <span className={totalAmount >= 0 ? 'amount-revenue' : 'amount-expense'}>
+              {formatSignedTND(totalAmount)}
+            </span>
+          </div>
+        </div>
+
+        <Alert type="danger" message={txError} />
+
+        {loading && transactions.length === 0 ? (
+          <Spinner text="Loading transactions…" />
+        ) : (
+          <TransactionTable
+            transactions={transactions}
+            onDelete={handleDeleteTransaction}
+            showEventColumn={true}
+            {...(selectedEvent !== 'all' || selectedType !== 'all'
+              ? {
+                  emptyTitle: 'Nothing matches these filters',
+                  emptyText: 'Try another event or type, or clear the filters.'
+                }
+              : {})}
+          />
+        )}
       </div>
 
-      {/* Record Transaction Modal using reusable Modal component */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Record New Transaction"
-        subtitle="Log a revenue incoming or expenditure outgoing"
-      >
-        <Alert type="danger" message={formError} onClose={() => setFormError('')} />
+    {/* Record Transaction Modal using reusable Modal component */}
+    <Modal
+      isOpen={showModal}
+      onClose={() => setShowModal(false)}
+      title="Record New Transaction"
+      subtitle="Log a revenue incoming or expenditure outgoing"
+    >
+      <Alert type="danger" message={formError} onClose={() => setFormError('')} />
 
-        <form onSubmit={handleFormSubmit}>
-          {/* Transaction Type Radio Selector */}
-          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-              Transaction Type *
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <Button
-                type="button"
-                variant={txForm.type === 'revenue' ? 'success' : 'secondary'}
-                onClick={() => handleTypeChangeInModal('revenue')}
-                icon={ArrowUpRight}
-                fullWidth
-              >
-                Revenue
-              </Button>
-              <Button
-                type="button"
-                variant={txForm.type === 'expense' ? 'danger' : 'secondary'}
-                onClick={() => handleTypeChangeInModal('expense')}
-                icon={ArrowDownRight}
-                fullWidth
-              >
-                Expense
-              </Button>
-            </div>
-          </div>
-
-          {/* Event Dropdown */}
-          <Select
-            label="Associated Event"
-            name="event"
-            value={txForm.event}
-            onChange={(e) => setTxForm({ ...txForm, event: e.target.value })}
-            placeholder="Select an event"
-            options={events.map((ev) => ({
-              value: ev._id,
-              label: `${ev.name} (${ev.location})`
-            }))}
-            required
-          />
-
-          {/* Category Dropdown */}
-          <Select
-            label="Category"
-            name="category"
-            value={txForm.category}
-            onChange={(e) => setTxForm({ ...txForm, category: e.target.value })}
-            placeholder={`Select a ${txForm.type} category`}
-            options={filteredModalCategories.map((c) => ({
-              value: c._id,
-              label: c.name
-            }))}
-            required
-          />
-
-          {/* Description */}
-          <Input
-            label="Description"
-            name="description"
-            placeholder="e.g. Sponsoring partnership contract"
-            value={txForm.description}
-            onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
-            required
-          />
-
-          {/* Amount & Date */}
-          <div className="form-row">
-            <Input
-              label="Amount (TND)"
-              name="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="e.g. 1000"
-              value={txForm.amount}
-              onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
-              icon={DollarSign}
-              required
-            />
-            <Input
-              label="Date"
-              name="date"
-              type="date"
-              value={txForm.date}
-              onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
-              icon={Calendar}
-              required
-            />
-          </div>
-
-          <div className="form-actions">
+      <form onSubmit={handleFormSubmit}>
+        {/* Transaction Type Radio Selector */}
+        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
+            Transaction Type *
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <Button
               type="button"
-              variant="secondary"
-              onClick={() => setShowModal(false)}
+              variant={txForm.type === 'revenue' ? 'success' : 'secondary'}
+              onClick={() => handleTypeChangeInModal('revenue')}
+              icon={ArrowUpRight}
+              fullWidth
             >
-              Cancel
+              Revenue
             </Button>
             <Button
-              type="submit"
-              variant={txForm.type === 'revenue' ? 'success' : 'danger'}
-              loading={isSubmitting}
+              type="button"
+              variant={txForm.type === 'expense' ? 'danger' : 'secondary'}
+              onClick={() => handleTypeChangeInModal('expense')}
+              icon={ArrowDownRight}
+              fullWidth
             >
-              Record {txForm.type === 'revenue' ? 'Revenue' : 'Expense'}
+              Expense
             </Button>
           </div>
-        </form>
-      </Modal>
-    </div>
+        </div>
+
+        {/* Event Dropdown */}
+        <Select
+          label="Associated Event"
+          name="event"
+          value={txForm.event}
+          onChange={(e) => setTxForm({ ...txForm, event: e.target.value })}
+          placeholder="Select an event"
+          options={events.map((ev) => ({
+            value: ev._id,
+            label: `${ev.name} (${ev.location})`
+          }))}
+          required
+        />
+
+        {/* Category Dropdown */}
+        <Select
+          label="Category"
+          name="category"
+          value={txForm.category}
+          onChange={(e) => setTxForm({ ...txForm, category: e.target.value })}
+          placeholder={`Select a ${txForm.type} category`}
+          options={filteredModalCategories.map((c) => ({
+            value: c._id,
+            label: c.name
+          }))}
+          required
+        />
+
+        {/* Description */}
+        <Input
+          label="Description"
+          name="description"
+          placeholder="e.g. Sponsoring partnership contract"
+          value={txForm.description}
+          onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
+          required
+        />
+
+        {/* Amount & Date */}
+        <div className="form-row">
+          <Input
+            label="Amount (TND)"
+            name="amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            placeholder="e.g. 1000"
+            value={txForm.amount}
+            onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
+            icon={DollarSign}
+            required
+          />
+          <Input
+            label="Date"
+            name="date"
+            type="date"
+            value={txForm.date}
+            onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
+            icon={Calendar}
+            required
+          />
+        </div>
+
+        <div className="form-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setShowModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant={txForm.type === 'revenue' ? 'success' : 'danger'}
+            loading={isSubmitting}
+          >
+            Record {txForm.type === 'revenue' ? 'Revenue' : 'Expense'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+    </>
   );
 };
 

@@ -8,297 +8,182 @@
 // - Tajmi3 les chiffres réels mta3 el Landing Page (Public Stats)
 //
 // LIEN M3A LES PAGES :
-// 1. Dashboard.jsx    --> y3ayet l- fetchDashboardStats() fi useEffect()
-// 2. Events.jsx       --> y3ayet l- fetchEvents() fi useEffect() w createEvent() fel Formulaire
-// 3. EventDetails.jsx --> y3ayet l- fetchEventById(id) fi useEffect() w deleteEvent()
-// 4. Transactions.jsx --> y3ayet l- fetchEvents() bech y3abbi el Dropdown <select> mta3 les événements
-// 5. LandingPage.jsx  --> y3ayet l- fetchPublicStats() fi useEffect() bech yaffichi les chiffres réels
+// 1. Dashboard.jsx    --> fetchDashboardStats()
+// 2. Events.jsx       --> fetchEvents(), createEvent(), deleteEvent()
+// 3. EventDetails.jsx --> fetchEventById(id), deleteEvent()
+// 4. Transactions.jsx --> fetchEvents() bech y3abbi el Dropdown <select>
+// 5. LandingPage.jsx  --> fetchPublicStats()
 // ==============================================================================
 
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import api from '../services/api';
+import { apiThunk } from './actions';
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 1 : fetchEvents
-// KHEDMETOU     : Yjib el liste mta3 les événements mel MongoDB (GET /api/events)
-// REQUETE       : GET /api/events?search=...
-// CHKOUN YESTA3MLOU :
-// - Events.jsx (fi useEffect wa9telli t7ell l-page, wala wa9telli tektib fel barre de recherche)
-// - Transactions.jsx (bech ya3ref les noms d'événements fel filtre wel modal)
-// ------------------------------------------------------------------------------
-export const fetchEvents = createAsyncThunk(
+// GET /api/events?search=...
+export const fetchEvents = apiThunk(
   'events/fetchEvents',
-  async (searchTerm, { rejectWithValue }) => {
-    try {
-      // Ken famma mot-clé fel recherche nzidouh fel URL (?search=...)
-      const url = searchTerm ? `/events?search=${encodeURIComponent(searchTerm)}` : '/events';
-      const response = await api.get(url);
-      if (response.data.success) {
-        return response.data.events; // Yarja3 tableau fih les événements l-kol
-      }
-      return rejectWithValue(response.data.message || 'Moshkla fi tajyib les events.');
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Ma najjamnech njibou les événements.');
-    }
-  }
+  async (searchTerm) => (await api.get('/events', { params: searchTerm ? { search: searchTerm } : {} })).data,
+  (data) => data.events
 );
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 2 : fetchEventById
-// KHEDMETOU     : Yjib tafasil événement we7ed barka bel ID mte3ou (GET /api/events/:id)
-// DONNEES       : L'event nafssou + calculat el flous (Revenue, Expense, Balance) + liste transactions mte3ou
-// CHKOUN YESTA3MLOU :
-// - EventDetails.jsx (fi useEffect([id]) wa9telli tenzel "View Details")
-// ------------------------------------------------------------------------------
-export const fetchEventById = createAsyncThunk(
+// GET /api/events/:id
+// El backend yrajja3 { event: { ...event, ...financials, transactions } }
+// -> nfar9ouh l { event, transactions } kima testanna EventDetails.jsx
+export const fetchEventById = apiThunk(
   'events/fetchEventById',
-  async (id, { rejectWithValue }) => {
-    try {
-      const response = await api.get(`/events/${id}`);
-      if (response.data.success) {
-        return {
-          event: response.data.event,
-          financials: response.data.financials,
-          transactions: response.data.transactions
-        };
-      }
-      return rejectWithValue(response.data.message || 'Event mehouche mawjoud.');
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Ghalta fi chargement el event.');
-    }
+  async (id) => (await api.get(`/events/${id}`)).data,
+  (data) => {
+    const { transactions = [], ...event } = data.event;
+    return { event, transactions };
   }
 );
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 3 : createEvent
-// KHEDMETOU     : Yab3ath événement jdid lel backend bech yetsajjel fi MongoDB (POST /api/events)
-// DONNEES       : { name, location, budget, startDate, endDate, description }
-// CHKOUN YESTA3MLOU :
-// - Events.jsx (wa9telli t3abbi el modal "Create New Event" w tenzel Submit)
-// ------------------------------------------------------------------------------
-export const createEvent = createAsyncThunk(
+// POST /api/events
+export const createEvent = apiThunk(
   'events/createEvent',
-  async (eventData, { rejectWithValue }) => {
-    try {
-      const response = await api.post('/events', eventData);
-      if (response.data.success) {
-        return response.data.event; // Yarja3 l'event ejjdid li tsajjel
-      }
-      return rejectWithValue(response.data.message || 'Moshkla fi sna3an l-événement.');
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Ghalta fi création d événement.');
-    }
-  }
+  async (eventData) => (await api.post('/events', eventData)).data,
+  (data) => data.event
 );
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 4 : deleteEvent (Faskh bel Cascade)
-// KHEDMETOU     : Yfasa5 l'événement mel base de données w en même temps yfasa5 kol les transactions li marboutin bih
-// REQUETE       : DELETE /api/events/:id
-// CHKOUN YESTA3MLOU :
-// - Events.jsx (wa9telli tenzel 3la botona el poubelle 🗑️)
-// - EventDetails.jsx (wa9telli tenzel "Delete Event")
-// ------------------------------------------------------------------------------
-export const deleteEvent = createAsyncThunk(
+// DELETE /api/events/:id (Cascade : el backend yfasa5 les transactions mte3ou zeda)
+export const deleteEvent = apiThunk(
   'events/deleteEvent',
-  async (id, { rejectWithValue }) => {
-    try {
-      const response = await api.delete(`/events/${id}`);
-      if (response.data.success) {
-        return id; // Nraj3ou l'ID mta3 li tfasa5 bech na7iweh mil state
-      }
-      return rejectWithValue(response.data.message || 'Moshkla fi faskh l-événement.');
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Ghalta fi faskh l-événement.');
-    }
-  }
+  async (id) => (await api.delete(`/events/${id}`)).data,
+  (data, id) => id
 );
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 5 : fetchDashboardStats
-// KHEDMETOU     : Y7adher kol chay yest7a9ou el Dashboard :
-//                 1. stats: Total Revenue, Total Expenses, Net Balance, Total Events
-//                 2. chartData: Les données formatées lel composant Chart.js (Bar Chart)
-//                 3. eventsOverview: Tableau mta3 el 7ala el maliya mta3 kol event
-//                 4. recentTransactions: E5er 6 transactions tsajlou
-// REQUETE       : GET /api/events/dashboard/stats
-// CHKOUN YESTA3MLOU :
-// - Dashboard.jsx (fi useEffect wa9telli yet7all el Dashboard)
-// ------------------------------------------------------------------------------
-export const fetchDashboardStats = createAsyncThunk(
+// GET /api/events/dashboard/stats
+export const fetchDashboardStats = apiThunk(
   'events/fetchDashboardStats',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/events/dashboard/stats');
-      if (response.data.success) {
-        return {
-          stats: response.data.stats,
-          chartData: response.data.chartData,
-          eventsOverview: response.data.eventsOverview,
-          recentTransactions: response.data.recentTransactions
-        };
-      }
-      return rejectWithValue(response.data.message || 'Moshkla fi chargement el Dashboard.');
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Ghalta fi statistiques el Dashboard.');
-    }
-  }
+  async () => (await api.get('/events/dashboard/stats')).data,
+  ({ stats, trends, chartData, eventsOverview, recentTransactions }) => ({
+    stats,
+    trends: trends || null,
+    chartData,
+    eventsOverview,
+    recentTransactions
+  })
 );
 
-// ------------------------------------------------------------------------------
-// ASYNC THUNK 6 : fetchPublicStats (Direct mel MongoDB lel Landing Page)
-// KHEDMETOU     : Yjib chiffres réels 3la kol chay (blech login) bech el Landing Page ma tkounch faha fake data
-// REQUETE       : GET /api/events/public/stats
-// CHKOUN YESTA3MLOU :
-// - LandingPage.jsx (fi useEffect wa9telli t7ell el page d'accueil)
-// ------------------------------------------------------------------------------
-export const fetchPublicStats = createAsyncThunk(
+// GET /api/events/public/stats (blech login, lel Landing Page)
+export const fetchPublicStats = apiThunk(
   'events/fetchPublicStats',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/events/public/stats');
-      if (response.data.success) {
-        return response.data.stats; // { totalEvents, totalRevenue, totalExpenses, netBalance }
-      }
-      return rejectWithValue(response.data.message || 'Moshkla fi public stats.');
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Ghalta fi public stats.');
-    }
-  }
+  async () => (await api.get('/events/public/stats')).data,
+  (data) => data.stats
 );
 
 // ------------------------------------------------------------------------------
-// INITIAL STATE : El 7ala el ibtide'iya mta3 les événements fel Redux
+// INITIAL STATE
 // ------------------------------------------------------------------------------
 const initialState = {
-  events: [],              // Tableau fih les événements l-kol (affiche fel Events.jsx)
-  currentEvent: null,      // L'événement li 7allinou tawwa fel EventDetails.jsx
-  dashboardData: {         // Données el Dashboard l-kol
+  events: [],              // Les événements l-kol (Events.jsx)
+  currentEvent: null,      // { event, transactions } (EventDetails.jsx)
+  dashboardData: {
     stats: {
       totalRevenue: 0,
       totalExpenses: 0,
       netBalance: 0,
       totalEvents: 0
     },
-    chartData: [],         // Données el graphe Chart.js
-    eventsOverview: [],    // Données tableau el Dashboard
-    recentTransactions: [] // E5er transactions
+    trends: null,          // { revenue|expense|net: { current, previous } } (had el chhar vs eli fet)
+    chartData: [],
+    eventsOverview: [],
+    recentTransactions: []
   },
-  publicStats: {           // Chiffres réels lel Landing Page
+  publicStats: {
     totalEvents: 0,
     totalRevenue: 0,
     totalExpenses: 0,
     netBalance: 0
   },
-  loading: false,              // true wa9telli 9a3ed yjib fel events wala fel dashboard
-  currentEventLoading: false,  // true wa9telli 9a3ed yjib fi événement spécifique
-  isSubmitting: false,         // true wa9telli tenzel "Create Event" (spinner 3al bouton)
-  error: null,                 // Message d'erreur
-  currentEventError: null      // Erreur mta3 événement spécifique
+  loading: false,              // fetchEvents / fetchDashboardStats
+  currentEventLoading: false,  // fetchEventById
+  isSubmitting: false,         // createEvent / deleteEvent
+  error: null,
+  currentEventError: null
 };
 
-// ------------------------------------------------------------------------------
-// SLICE CONFIGURATION & EXTRA REDUCERS
-// ------------------------------------------------------------------------------
 const eventsSlice = createSlice({
   name: 'events',
   initialState,
   reducers: {
-    // Action synchrone : Nnadhfou l'event li ken ma7loul wa9telli no5rjou men EventDetails.jsx
     clearCurrentEvent: (state) => {
       state.currentEvent = null;
       state.currentEventError = null;
     },
-    // Action synchrone : Nna7iw l'erreur
     clearEventsError: (state) => {
       state.error = null;
     }
   },
   extraReducers: (builder) => {
-    // --- 1. fetchEvents ---
+    const startLoading = (state) => {
+      state.loading = true;
+      state.error = null;
+    };
+    const startSubmitting = (state) => {
+      state.isSubmitting = true;
+      state.error = null;
+    };
+    const fail = (flag) => (state, action) => {
+      state[flag] = false;
+      state.error = action.payload;
+    };
+
     builder
-      .addCase(fetchEvents.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // --- fetchEvents ---
+      .addCase(fetchEvents.pending, startLoading)
       .addCase(fetchEvents.fulfilled, (state, action) => {
         state.loading = false;
-        state.events = action.payload; // N7ottou les events l-kol fel store
+        state.events = action.payload;
       })
-      .addCase(fetchEvents.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+      .addCase(fetchEvents.rejected, fail('loading'))
 
-    // --- 2. fetchEventById ---
-    builder
-      .addCase(fetchEventById.pending, (state) => {
+      // --- fetchEventById ---
+      .addCase(fetchEventById.pending, (state, action) => {
         state.currentEventLoading = true;
         state.currentEventError = null;
+        // Ma nwarriwch détails mta3 event 9dim wa9t ma yetchargi event e5er
+        if (state.currentEvent?.event?._id !== action.meta.arg) state.currentEvent = null;
       })
       .addCase(fetchEventById.fulfilled, (state, action) => {
         state.currentEventLoading = false;
-        state.currentEvent = action.payload; // N7ottou les détails mta3 l'event
+        state.currentEvent = action.payload;
       })
       .addCase(fetchEventById.rejected, (state, action) => {
         state.currentEventLoading = false;
         state.currentEventError = action.payload;
-      });
-
-    // --- 3. createEvent ---
-    builder
-      .addCase(createEvent.pending, (state) => {
-        state.isSubmitting = true;
-        state.error = null;
       })
+
+      // --- createEvent ---
+      .addCase(createEvent.pending, startSubmitting)
       .addCase(createEvent.fulfilled, (state, action) => {
         state.isSubmitting = false;
-        // Nzidou l'event ejjdid awwel we7ed fel liste (unshift)
         state.events.unshift(action.payload);
       })
-      .addCase(createEvent.rejected, (state, action) => {
-        state.isSubmitting = false;
-        state.error = action.payload;
-      });
+      .addCase(createEvent.rejected, fail('isSubmitting'))
 
-    // --- 4. deleteEvent ---
-    builder
-      .addCase(deleteEvent.pending, (state) => {
-        state.isSubmitting = true;
-        state.error = null;
-      })
+      // --- deleteEvent ---
+      .addCase(deleteEvent.pending, startSubmitting)
       .addCase(deleteEvent.fulfilled, (state, action) => {
         state.isSubmitting = false;
-        // Na7iw l'event li tfasa5 mel liste bel filter
         state.events = state.events.filter((ev) => ev._id !== action.payload);
         if (state.currentEvent?.event?._id === action.payload) {
           state.currentEvent = null;
         }
       })
-      .addCase(deleteEvent.rejected, (state, action) => {
-        state.isSubmitting = false;
-        state.error = action.payload;
-      });
+      .addCase(deleteEvent.rejected, fail('isSubmitting'))
 
-    // --- 5. fetchDashboardStats ---
-    builder
-      .addCase(fetchDashboardStats.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // --- fetchDashboardStats ---
+      .addCase(fetchDashboardStats.pending, startLoading)
       .addCase(fetchDashboardStats.fulfilled, (state, action) => {
         state.loading = false;
-        state.dashboardData = action.payload; // N7ottou kol chay fel Dashboard
+        state.dashboardData = action.payload;
       })
-      .addCase(fetchDashboardStats.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+      .addCase(fetchDashboardStats.rejected, fail('loading'))
 
-    // --- 6. fetchPublicStats ---
-    builder
+      // --- fetchPublicStats ---
       .addCase(fetchPublicStats.fulfilled, (state, action) => {
-        state.publicStats = action.payload; // Mta3 el Landing Page
+        state.publicStats = action.payload;
       });
   }
 });
